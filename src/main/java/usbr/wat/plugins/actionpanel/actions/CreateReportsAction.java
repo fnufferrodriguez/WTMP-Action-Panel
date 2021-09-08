@@ -60,6 +60,7 @@ import net.sf.jasperreports.repo.RepositoryService;
 import rma.util.RMAFilenameFilter;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
+import usbr.wat.plugins.actionpanel.io.ReportXmlFile;
 
 /**
  * @author Mark Ackerman
@@ -71,6 +72,9 @@ public class CreateReportsAction extends AbstractAction
 	public static final String PYTHON_REPORT_BAT = "runPythonReport.bat";
 	public static final String PYTHON_INIT_BAT = "initializePython.bat";
 	public static final String JYTHON_POST_PROCESS_SCRIPT ="PostProcess_Region.py";
+	
+	public static final String JASPER_COMPILED_FILE_EXT = ".jasper";
+	private static final String JASPER_SOURCE_FILE_EXT = "jrxml";
 	
 	public static final String OBS_DATA_FOLDER   = "shared";
 	private static final String DATA_SOURCES_DIR = "DataSources";
@@ -112,6 +116,7 @@ public class CreateReportsAction extends AbstractAction
 			return ;
 			
 		}
+		
 		List<WatSimulation>sims = _parent.getSelectedSimulations();
 		if ( sims.isEmpty())
 		{
@@ -127,7 +132,29 @@ public class CreateReportsAction extends AbstractAction
 			for(int i = 0;i < sims.size(); i++ )
 			{
 				sim = sims.get(i);
-				runSimulationReport(sim);
+				String reportFile = createSimulationReport(sim);
+				if ( reportFile != null )
+				{
+					if ( runPythonScript(reportFile, PYTHON_REPORT_BAT))
+					{
+						if ( runJasperReport(sim))
+						{
+							_parent.addMessage("Generated Report for "+sim.getName());
+						}
+						else
+						{
+							_parent.addMessage("Failed to create Jasper Report for " +sim.getName());
+						}
+					}
+					else
+					{
+						_parent.addMessage("Failed to Run Python for " +sim.getName());
+					}
+				}
+				else
+				{
+					_parent.addMessage("Failed to generate input file for Python for " +sim.getName());
+				}
 			}
 		}
 		finally
@@ -137,6 +164,62 @@ public class CreateReportsAction extends AbstractAction
 			_parent.setCursor(Cursor.getPredefinedCursor(0));
 		}
 	}
+	/**
+	 * @param reportFile
+	 * @param pythonReportBat
+	 * @return
+	 */
+	private boolean runPythonScript(String reportFile, String pythonReportBat)
+	{
+		long t1 = System.currentTimeMillis();
+		try
+		{
+			if ( Boolean.getBoolean("SkipPythonReport"))
+			{
+				return true;
+			}
+			List<String>cmdList = new ArrayList<>();
+			String studyDir = Project.getCurrentProject().getProjectDirectory();
+			String batFile = RMAIO.concatPath(studyDir, PYTHON_REPORT_BAT);
+			//cmdList.add("cmd.exe");
+			//cmdList.add("/c");
+			cmdList.add(batFile);
+			cmdList.add(reportFile);
+
+			return runProcess(cmdList, studyDir);
+		}
+		finally
+		{
+			long t2 = System.currentTimeMillis();
+			System.out.println("runPythonScript:time to run python for "+reportFile+" is "+(t2-t1)+"ms");
+		}
+	}
+	/**
+	 * @param sim
+	 */
+	private String createSimulationReport(WatSimulation sim)
+	{
+		Project prj = Project.getCurrentProject();
+		String studyDir = prj.getProjectDirectory();
+		String filename = RMAIO.concatPath(studyDir, REPORT_DIR);
+		filename = RMAIO.concatPath(filename, RMAIO.userNameToFileName(sim.getName())+".xml");
+		if ( Boolean.getBoolean("SkipSimulationReportFile"))
+		{
+			return filename;
+		}
+		
+		ReportXmlFile xmlFile = new ReportXmlFile(filename);
+		xmlFile.setStudyInfo(studyDir, getObsDataPath(studyDir));
+		List<WatSimulation>sims = new ArrayList();
+		sims.add(sim);
+		xmlFile.setSimulations(_parent.getSimulationGroup().getName(), sims);
+		if (  xmlFile.createXMLFile() )
+		{
+			return filename;
+		}
+		return null;
+	}
+	
 	private void runSimulationReport(WatSimulation sim)
 	{
 		List<ModelAlternative> modelAlts = sim.getAllModelAlternativeList();
@@ -630,24 +713,67 @@ public class CreateReportsAction extends AbstractAction
 	 */
 	private void compileJasperFiles(String jasperDir)
 	{
-		RMAFilenameFilter filter= new RMAFilenameFilter("jrxml");
+		RMAFilenameFilter filter= new RMAFilenameFilter(JASPER_SOURCE_FILE_EXT);
 		filter.setAcceptDirectories(false);
 		List<String> jasperFiles = FileManagerImpl.getFileManager().list(jasperDir, filter);
+		String srcFile, destFile;
+		boolean alwaysCompile = Boolean.getBoolean("CompileJasperFiles");
 		for (int i = 0;i < jasperFiles.size(); i++ )
 		{
-			System.out.println("compileJasperFiles:compiling to disk "+jasperFiles.get(i));
-			try
+			srcFile = jasperFiles.get(i);
+			destFile = getJasperDestFile(srcFile);
+			if ( needsToCompile(srcFile, destFile) || alwaysCompile )
 			{
-				String rv = JasperCompileManager.compileReportToFile(jasperFiles.get(i));
-				System.out.println("compileJasperFiles: compiled to "+rv);
-			}
-			catch (JRException e)
-			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("compileJasperFiles:compiling to disk "+srcFile);
+				try
+				{
+					String rv = JasperCompileManager.compileReportToFile(jasperFiles.get(i));
+					System.out.println("compileJasperFiles: compiled to "+rv);
+				}
+				catch (JRException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 		
+	}
+	/**
+	 * 
+	 * check to see if the file needs to be compile
+	 * @param srcFile
+	 * @param destFile
+	 * @return
+	 */
+	private static boolean needsToCompile(String src, String dest)
+	{
+		RmaFile srcFile = FileManagerImpl.getFileManager().getFile(src);
+		RmaFile destFile = FileManagerImpl.getFileManager().getFile(dest);
+		if ( destFile.exists() )
+		{
+			if ( srcFile.lastModified() > destFile.lastModified() )
+			{
+				return true;
+			}
+			return false;
+		}
+		return true;
+	}
+	/**
+	 * @param srcFile
+	 * @return
+	 */
+	private String getJasperDestFile(String srcFile)
+	{
+		int idx = srcFile.lastIndexOf('.');
+		if ( idx > -1 )
+		{
+			String destFile = srcFile.substring(0,idx);
+			destFile = destFile.concat(JASPER_COMPILED_FILE_EXT);
+			return destFile;
+		}
+		return null;
 	}
 	/**
 	 * @param sim
