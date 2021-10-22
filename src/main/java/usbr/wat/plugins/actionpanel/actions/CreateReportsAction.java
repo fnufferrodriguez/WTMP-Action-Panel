@@ -81,7 +81,8 @@ public class CreateReportsAction extends AbstractAction
 	public static final String REPORT_DIR = "reports";
 	private static final String JASPER_REPORT_DIR = "Reports";
 	private static final String JASPER_FILE = "USBR_Draft_Validation.jrxml";
-	public static final String JASPER_OUT_FILE = "USBR_Draft_Validation.pdf";
+	public static final String JASPER_OUT_FILE = "WTMP_report_draft";
+	public static final String REPORT_FILE_EXT = ".pdf";
 	private static final String XML_DATA_DOCUMENT = "USBRAutomatedReportDataAdapter.xml";
 	
 	private static final String WATERSHED_NAME_PARAM = "watershedName";
@@ -656,6 +657,12 @@ public class CreateReportsAction extends AbstractAction
 			SimpleDateFormat fmt = new SimpleDateFormat("MMMM dd, yyyy HH:mm");
 
 			params.put(SIMULATION_LAST_COMPUTED_DATE_PARAM, fmt.format(date));
+			
+			fmt= new SimpleDateFormat("yyyy.MMM.dd-HHmm");
+			
+			outputFile = outputFile.concat(fmt.format(date));
+			outputFile = outputFile.concat(REPORT_FILE_EXT);
+			
 
 			String xmlDataDoc = RMAIO.concatPath(studyDir, REPORT_DIR);
 			xmlDataDoc = RMAIO.concatPath(xmlDataDoc, DATA_SOURCES_DIR);
@@ -670,7 +677,6 @@ public class CreateReportsAction extends AbstractAction
 			}
 			catch (JRException e1)
 			{
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 				return false;
 			}
@@ -680,7 +686,6 @@ public class CreateReportsAction extends AbstractAction
 			}
 			catch (JRException e)
 			{
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 				return false;
 			}
@@ -699,7 +704,6 @@ public class CreateReportsAction extends AbstractAction
 			}
 			catch (JRException e)
 			{
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 				return false;
 			}
