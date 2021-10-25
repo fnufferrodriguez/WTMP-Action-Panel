@@ -46,7 +46,7 @@ import rma.swing.RmaJList;
 import rma.swing.RmaJTable;
 import rma.swing.list.RmaListModel;
 import rma.util.RMAIO;
-import usbr.wat.plugins.actionpanel.actions.CreateReportsAction;
+import usbr.wat.plugins.actionpanel.actions.DisplayReportAction;
 import usbr.wat.plugins.actionpanel.model.SimulationGroup;
 
 /**
@@ -419,19 +419,15 @@ public class ActionsWindow extends RmaJDialog
 			return;
 		}
 		WatSimulation sim = (WatSimulation) _simulationTable.getValueAt(row, SIMULATION_COLUMN);	
-		if ( sim != null )
-		{
-			String rptDir = RMAIO.concatPath(sim.getSimulationDirectory(), CreateReportsAction.REPORT_DIR);
-			String rptFile = RMAIO.concatPath(rptDir, CreateReportsAction.JASPER_OUT_FILE);
-			displayFile(rptFile);
-			
-		}
+		
+		DisplayReportAction action = new DisplayReportAction(this);
+		action.displayReportAction(sim);
 	}
 
 	/**
 	 * @param rptFile
 	 */
-	private void displayFile(String rptFile)
+	public  void displayFile(String rptFile)
 	{
 		if ( Desktop.isDesktopSupported())
 		{

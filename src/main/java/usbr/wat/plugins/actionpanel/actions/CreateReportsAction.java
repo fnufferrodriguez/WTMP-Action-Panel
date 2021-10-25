@@ -81,7 +81,7 @@ public class CreateReportsAction extends AbstractAction
 	public static final String REPORT_DIR = "reports";
 	private static final String JASPER_REPORT_DIR = "Reports";
 	private static final String JASPER_FILE = "USBR_Draft_Validation.jrxml";
-	public static final String JASPER_OUT_FILE = "WTMP_report_draft";
+	public static final String JASPER_OUT_FILE = "WTMP_report_draft-";
 	public static final String REPORT_FILE_EXT = ".pdf";
 	private static final String XML_DATA_DOCUMENT = "USBRAutomatedReportDataAdapter.xml";
 	
@@ -658,8 +658,11 @@ public class CreateReportsAction extends AbstractAction
 
 			params.put(SIMULATION_LAST_COMPUTED_DATE_PARAM, fmt.format(date));
 			
-			fmt= new SimpleDateFormat("yyyy.MMM.dd-HHmm");
 			
+			
+			fmt= new SimpleDateFormat("yyyy.MM.dd-HHmm");
+			
+			date = new Date();
 			outputFile = outputFile.concat(fmt.format(date));
 			outputFile = outputFile.concat(REPORT_FILE_EXT);
 			
