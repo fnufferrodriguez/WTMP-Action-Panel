@@ -65,6 +65,7 @@ public class IterationBcPanel extends AbstractEditorPanel
 	private String _lastDssFile;
 	private int _editingRow;
 	private BcEntryDialog _bcEditor;
+	private JButton _clearDssBtn;
 	/**
 	 * @param editIterationSettingsDialog
 	 */
@@ -89,6 +90,10 @@ public class IterationBcPanel extends AbstractEditorPanel
 			public boolean isCellEditable(int row, int col)
 			{
 				return false;
+			}
+			@Override
+			public void setEnabled(boolean enabled)
+			{
 			}
 		};
 		_bcTable.removePopupMenuSumOptions();
@@ -116,7 +121,31 @@ public class IterationBcPanel extends AbstractEditorPanel
 		gbc.insets    = RmaInsets.INSETS5505;
 		add(buttonPanel, gbc);
 		
+		JPanel panel = new JPanel(new GridBagLayout());
+		gbc.gridx     = GridBagConstraints.RELATIVE;
+		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridwidth = GridBagConstraints.REMAINDER;
+		gbc.weightx   = 0.0;
+		gbc.weighty   = 0.0;
+		gbc.anchor    = GridBagConstraints.NORTH;
+		gbc.fill      = GridBagConstraints.NONE;
+		gbc.insets    = RmaInsets.INSETS5505;
+		add(panel, gbc);
+		
 		_selectDssBtn = new JButton("Browse DSS");
+		_selectDssBtn.setEnabled(false);
+		gbc.gridx     = GridBagConstraints.RELATIVE;
+		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridwidth = 1;
+		gbc.weightx   = 1.0;
+		gbc.weighty   = 0.0;
+		gbc.anchor    = GridBagConstraints.NORTH;
+		gbc.fill      = GridBagConstraints.NONE;
+		gbc.insets    = RmaInsets.INSETS5505;
+		panel.add(_selectDssBtn, gbc);
+		
+		_clearDssBtn = new JButton("Clear DSS Entries");
+		_clearDssBtn.setToolTipText("Clear the Selected DSS Record information for the selected rows");
 		_selectDssBtn.setEnabled(false);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
@@ -126,9 +155,7 @@ public class IterationBcPanel extends AbstractEditorPanel
 		gbc.anchor    = GridBagConstraints.NORTH;
 		gbc.fill      = GridBagConstraints.NONE;
 		gbc.insets    = RmaInsets.INSETS5505;
-		add(_selectDssBtn, gbc);
-		
-		
+		panel.add(_clearDssBtn, gbc);
 		
 		tableRowSelected();
 		
@@ -139,6 +166,7 @@ public class IterationBcPanel extends AbstractEditorPanel
 	private void addListeners()
 	{
 		_selectDssBtn.addActionListener(e->browseDSSAction( SwingUtilities.windowForComponent(this)));
+		_clearDssBtn.addActionListener(e->clearSelectedRowsAction());
 		_bcTable.getSelectionModel().addListSelectionListener(e -> tableRowSelected());
 		_bcTable.addMouseListener(new MouseAdapter()
 		{
@@ -154,6 +182,41 @@ public class IterationBcPanel extends AbstractEditorPanel
 		});
 		
 	}
+	/**
+	 * @return
+	 */
+	private void clearSelectedRowsAction()
+	{
+		int[] rows = _bcTable.getSelectedRows();
+		if ( rows == null || rows.length == 0 )
+		{
+			return;
+		}
+		int opt = JOptionPane.showConfirmDialog(this, "Do you want to clear the Selected DSS Record for the selected rows?","Comfirm", JOptionPane.YES_NO_OPTION);
+		if ( opt != JOptionPane.YES_OPTION )
+		{
+			return;
+		}
+		for (int r = 0; r < rows.length; r++ )
+		{
+			clearRow(rows[r]);
+		}
+	}
+	public void clearRow(int row)
+	{
+		DSSIdentifier dssId = (DSSIdentifier) _bcTable.getValueAt(row, DSSID_COL);
+		dssId.setFileName("");
+		dssId.setDSSPath("");
+		_bcTable.setValueAt(dssId, row, DSSID_COL);
+	}
+
+	@Override
+	public void setEnabled(boolean enabled)
+	{
+		super.setEnabled(enabled);
+		EventQueue.invokeLater(()-> tableRowSelected());
+	}
+
 	/**
 	 * @param point
 	 */
@@ -177,7 +240,9 @@ public class IterationBcPanel extends AbstractEditorPanel
 	private void tableRowSelected()
 	{
 		int row = _bcTable.getSelectedRow();
-		_selectDssBtn.setEnabled(row > -1 );
+		boolean enabled = row > -1 && isEnabled();
+		_selectDssBtn.setEnabled(enabled);
+		_clearDssBtn.setEnabled(enabled);
 	}
 
 
@@ -228,6 +293,10 @@ public class IterationBcPanel extends AbstractEditorPanel
 					 if ( dssId == null )
 					 {
 						 dssId = new DSSIdentifier("","");
+					 }
+					 else
+					 {
+						 dssId = new DSSIdentifier(dssId);
 					 }
 					 row.add(dssId);
 					 _bcTable.appendRow(row);
