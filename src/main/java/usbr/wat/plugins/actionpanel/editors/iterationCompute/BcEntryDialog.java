@@ -16,6 +16,8 @@ import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.SwingUtilities;
 
@@ -49,6 +51,7 @@ public class BcEntryDialog extends RmaJDialog
 	private RmaJTextField _iterationDssFileFld;
 	private RmaJTextField _iterationDssPathFld;
 	private JButton _browseDssBtn;
+	private JButton _clearDssBtn;
 	private ButtonCmdPanel _cmdPanel;
 	private RmaJTextField _parameterFld;
 	private boolean _fillingForm;
@@ -223,8 +226,7 @@ public class BcEntryDialog extends RmaJDialog
 		gbc.insets    = RmaInsets.INSETS5505;
 		getContentPane().add(_iterationDssPathFld, gbc);
 		
-		
-		_browseDssBtn = new JButton("Browse DSS");
+		JPanel panel = new JPanel(new GridBagLayout());
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -233,7 +235,30 @@ public class BcEntryDialog extends RmaJDialog
 		gbc.anchor    = GridBagConstraints.NORTH;
 		gbc.fill      = GridBagConstraints.NONE;
 		gbc.insets    = RmaInsets.INSETS5505;
-		getContentPane().add(_browseDssBtn , gbc);
+		getContentPane().add(panel, gbc);
+		
+		_browseDssBtn = new JButton("Browse DSS");
+		gbc.gridx     = GridBagConstraints.RELATIVE;
+		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridwidth = 1;
+		gbc.weightx   = 0.0;
+		gbc.weighty   = 0.0;
+		gbc.anchor    = GridBagConstraints.NORTH;
+		gbc.fill      = GridBagConstraints.NONE;
+		gbc.insets    = RmaInsets.INSETS5505;
+		panel.add(_browseDssBtn , gbc);
+		
+		_clearDssBtn = new JButton("Clear DSS");
+		_clearDssBtn.setToolTipText("Clear the Iteration DSS File and Path");
+		gbc.gridx     = GridBagConstraints.RELATIVE;
+		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridwidth = GridBagConstraints.REMAINDER;
+		gbc.weightx   = 0.0;
+		gbc.weighty   = 0.0;
+		gbc.anchor    = GridBagConstraints.NORTH;
+		gbc.fill      = GridBagConstraints.NONE;
+		gbc.insets    = RmaInsets.INSETS5505;
+		panel.add(_clearDssBtn , gbc);
 		
 		_cmdPanel = new ButtonCmdPanel(ButtonCmdPanel.CLOSE_BUTTON);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
@@ -254,6 +279,7 @@ public class BcEntryDialog extends RmaJDialog
 	{
 		_selectorPanel.addItemListener(e->selectionChanged(e));
 		_browseDssBtn.addActionListener(e->browseDssAction());
+		_clearDssBtn.addActionListener(e->clearDssAction());
 		_bcTable.getSelectionModel().addListSelectionListener(e->tableRowSelected());
 		
 		_cmdPanel.addCmdPanelListener(new ButtonCmdPanelListener()
@@ -295,6 +321,17 @@ public class BcEntryDialog extends RmaJDialog
 	private void browseDssAction()
 	{
 		_panel.browseDSSAction(this);
+	}
+	
+	private void clearDssAction()
+	{
+		int opt = JOptionPane.showConfirmDialog(this, "Clear the Iteration DSS File and Path?", "Confirm", JOptionPane.YES_NO_OPTION);
+		if ( opt == JOptionPane.YES_OPTION )
+		{
+			_panel.clearRow(_selectorPanel.getSelectedIndex());
+			_iterationDssFileFld.setText("");
+			_iterationDssPathFld.setText("");
+		}
 	}
 
 

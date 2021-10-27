@@ -8,6 +8,7 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ItemEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.swing.JLabel;
@@ -347,6 +348,7 @@ public class EditIterationSettingsDialog extends RmaJDialog
 						break;
 					case ButtonCmdPanel.APPLY_BUTTON:
 						saveForm();
+						break;
 					case ButtonCmdPanel.CANCEL_BUTTON :
 						setVisible(false);
 						break;
@@ -502,7 +504,7 @@ public class EditIterationSettingsDialog extends RmaJDialog
 	 */
 	private void saveSimInfo()
 	{
-		if ( _selectedSim != null )
+		if ( isValidForm())
 		{
 			IterationSettings iterationSettings = _simGroup.getIterationSettings(_selectedSim.getName());
 			boolean enabled = _useIterativeComputeCheck.isSelected();
@@ -530,6 +532,46 @@ public class EditIterationSettingsDialog extends RmaJDialog
 			setModified(false);
 		}
 		
+	}
+
+	/**
+	 * @return
+	 */
+	private boolean isValidForm()
+	{
+		if ( _selectedSim != null )
+		{
+			if ( !_useIterativeComputeCheck.isSelected())
+			{
+				return true;
+			}
+			int max = _maxMembersFld.getValueUndefined(-1);
+			if ( max == -1 )
+			{
+				JOptionPane.showMessageDialog(this, "Please enter a Maximum Compute member value", "Missing Value", JOptionPane.INFORMATION_MESSAGE);
+				_maxMembersFld.requestFocus();
+				return false;
+			}
+			int[] computeMembers = _groupMembersFld.getIntegerSet();
+			if ( computeMembers == null || computeMembers.length == 0) 
+			{
+				JOptionPane.showMessageDialog(this, "Please enter the Compute Members to compute", "Missing Value", JOptionPane.INFORMATION_MESSAGE);
+				_groupMembersFld.requestFocus();
+				return false;
+				
+			}
+			Arrays.sort(computeMembers);
+			if ( max < computeMembers[computeMembers.length-1])
+			{
+				JOptionPane.showMessageDialog(this, "The Maximum Iteration Member must be greater than or equal to the largest Compute Member", "Invalid Value", JOptionPane.INFORMATION_MESSAGE);
+				_maxMembersFld.requestFocus();
+				return false;
+				
+			}
+			return true;
+			
+		}
+		return false;
 	}
 
 	/**
