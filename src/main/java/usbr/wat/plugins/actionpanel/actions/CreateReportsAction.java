@@ -58,8 +58,11 @@ import net.sf.jasperreports.repo.PersistenceServiceFactory;
 import net.sf.jasperreports.repo.RepositoryService;
 import rma.util.RMAFilenameFilter;
 import rma.util.RMAIO;
+import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.io.ReportXmlFile;
+import usbr.wat.plugins.actionpanel.model.ReportPlugin;
+import usbr.wat.plugins.actionpanel.model.ReportsManager;
 
 /**
  * @author Mark Ackerman
@@ -67,6 +70,7 @@ import usbr.wat.plugins.actionpanel.io.ReportXmlFile;
  */
 @SuppressWarnings("serial")
 public class CreateReportsAction extends AbstractAction
+	implements ReportPlugin
 {
 	public static final String PYTHON_REPORT_BAT = "WAT_Report_Generator.exe";
 	public static final String PYTHON_INIT_BAT = "initializePython.bat";
@@ -106,15 +110,15 @@ public class CreateReportsAction extends AbstractAction
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
-		createReportAction();
+		createReport();
 	}
-	public void createReportAction()
+	public boolean createReport()
 	{
 		if ( _parent.getSimulationGroup() == null )
 		{
 			JOptionPane.showMessageDialog(_parent,"Please create or select a Simulation Group first",
 					"No Simulation Group Selected", JOptionPane.INFORMATION_MESSAGE);
-			return ;
+			return false;
 			
 		}
 		
@@ -123,7 +127,7 @@ public class CreateReportsAction extends AbstractAction
 		{
 			JOptionPane.showMessageDialog(_parent,"Please select the simulations that you want to create reports for",
 					"No Simulations Selected", JOptionPane.INFORMATION_MESSAGE);
-			return ;
+			return false;
 		}
 		WatSimulation sim;
 		_parent.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -133,29 +137,7 @@ public class CreateReportsAction extends AbstractAction
 			for(int i = 0;i < sims.size(); i++ )
 			{
 				sim = sims.get(i);
-				String reportFile = createSimulationReport(sim);
-				if ( reportFile != null )
-				{
-					if ( runPythonScript(reportFile, PYTHON_REPORT_BAT))
-					{
-						if ( runJasperReport(sim))
-						{
-							_parent.addMessage("Generated Report for "+sim.getName());
-						}
-						else
-						{
-							_parent.addMessage("Failed to create Jasper Report for " +sim.getName());
-						}
-					}
-					else
-					{
-						_parent.addMessage("Failed to Run Python for " +sim.getName());
-					}
-				}
-				else
-				{
-					_parent.addMessage("Failed to generate input file for Python for " +sim.getName());
-				}
+				runSimulationReport(sim);	
 			}
 		}
 		finally
@@ -164,6 +146,7 @@ public class CreateReportsAction extends AbstractAction
 			System.out.println("createReportAction:total time to create report is "+(t2-t1)+" ms");
 			_parent.setCursor(Cursor.getPredefinedCursor(0));
 		}
+		return true;
 	}
 	/**
 	 * @param reportFile
@@ -796,6 +779,39 @@ public class CreateReportsAction extends AbstractAction
 	{
 		String fpart = sim.getFPart(modelAlt);
 		return RMAIO.userNameToFileName(fpart);
+	}
+	
+	@Override
+	public String getName()
+	{
+		return "Simulation Report";
+	}
+	@Override
+	public String getDescription()
+	{
+		return "Report for a single Simulation";
+	}
+	@Override
+	public boolean isComparisonReport()
+	{
+		return false;
+	}
+	@Override
+	public boolean isIterationReport()
+	{
+		return false;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return getName();
+	}
+	
+	
+	public static void main(String[] args)
+	{
+		ReportsManager.register(new CreateReportsAction(ActionPanelPlugin.getInstance().getActionsWindow()));
 	}
 
 }
