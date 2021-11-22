@@ -13,6 +13,8 @@ import java.awt.Cursor;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -20,6 +22,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Logger;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -27,6 +32,7 @@ import javax.swing.SwingWorker;
 
 import hec.util.AnimatedWaitGlassPane;
 
+import hec2.wat.WAT;
 import hec2.wat.model.WatSimulation;
 
 import rma.swing.ButtonCmdPanel;
@@ -34,6 +40,7 @@ import rma.swing.ButtonCmdPanelListener;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJDialog;
 import rma.swing.RmaJTable;
+import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.model.ReportPlugin;
 import usbr.wat.plugins.actionpanel.model.ReportsManager;
@@ -48,11 +55,18 @@ public class DisplayReportsSelector extends RmaJDialog
 {
 	
 
+	private static final int SELECTED_COL = 0;
+	private static final int REPORT_COL = 1;
+	private static final int REPORT_DESC_COL = 2;
+	
+	private static final String PREF_NODE = "usbrReports";
+	
 	private RmaJTable _reportTable;
 	private ButtonCmdPanel _cmdPanel;
 	private AnimatedWaitGlassPane _agp;
 	private Component _glassPane;
 	private ActionsWindow _parent;
+	private boolean _isCanceled;
 
 	public DisplayReportsSelector(ActionsWindow parent)
 	{
@@ -74,6 +88,8 @@ public class DisplayReportsSelector extends RmaJDialog
 	 */
 	protected void buildControls()
 	{
+		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		
 		getContentPane().setLayout(new GridBagLayout());
 		setTitle("Select Reports");
 		
@@ -113,6 +129,15 @@ public class DisplayReportsSelector extends RmaJDialog
 	 */
 	private void addListeners()
 	{
+		addWindowListener(new WindowAdapter()
+		{
+			@Override
+			public void windowClosing(WindowEvent e)
+			{
+				_isCanceled = false;
+				setVisible(false);
+			}
+		});
 		_cmdPanel.addCmdPanelListener(new ButtonCmdPanelListener()
 		{
 			public void buttonCmdActionPerformed(ActionEvent e)
@@ -120,10 +145,12 @@ public class DisplayReportsSelector extends RmaJDialog
 				switch (e.getID())
 				{
 					case ButtonCmdPanel.OK_BUTTON :
+						_isCanceled = false;
 						createReports();
 						setVisible(false);
 						break;
 					case ButtonCmdPanel.CANCEL_BUTTON :
+						_isCanceled = true;
 						setVisible(false);
 						break;
 				}
@@ -185,11 +212,51 @@ public class DisplayReportsSelector extends RmaJDialog
 	 * @param plugin
 	 * @return
 	 */
-	private Object shouldBeSelected(ReportPlugin plugin)
+	private boolean shouldBeSelected(ReportPlugin plugin)
 	{
-		// TODO Auto-generated method stub
-		System.out.println("shouldBeSelected TODO implement me");
-		return null;
+		Preferences node = WAT.getBrowserFrame().getPreferences().getProjectPreferenceNode().node(PREF_NODE);
+		int idx = 0;
+		String selectedReportName;
+		String pluginName = plugin.getName();
+		while (true )
+		{
+			selectedReportName = node.get("SelectedReport"+idx, null);
+			if (pluginName.equalsIgnoreCase(selectedReportName) )
+			{
+				return true;
+			}
+			else if ( selectedReportName == null )
+			{
+				return false;
+			}
+			idx++;
+		}
+		/*
+		String[] kidNodeNames;
+		try
+		{
+			kidNodeNames = node.childrenNames();
+		}
+		catch (BackingStoreException e)
+		{
+			Logger.getLogger(DisplayReportsSelector.class.getName()).info("Failed to get list of selected reports " + e);
+			return false;
+		}
+		if ( kidNodeNames != null )
+		{
+			String kidName;
+			for (int i = 0;i < kidNodeNames.length; i++ )
+			{
+				kidName = node.get(kidNodeNames[i], "");
+				if ( pluginName.equalsIgnoreCase(kidName))
+				{
+					return true;
+				}
+				
+			}
+		}
+		return false;
+		*/
 	}
 
 
@@ -201,6 +268,18 @@ public class DisplayReportsSelector extends RmaJDialog
 	{
 		List<ReportPlugin>reportPlugins = new ArrayList<>();
 		int rowCnt = _reportTable.getRowCount();
+		Object obj;
+		for (int r = 0;r < rowCnt; r++)
+		{
+			obj = _reportTable.getValueAt(r, SELECTED_COL);
+			if ( obj != null )
+			{
+				if  ( RMAIO.parseBoolean(obj.toString(), false))
+				{
+					reportPlugins.add((ReportPlugin) _reportTable.getValueAt(r, REPORT_COL));
+				}
+			}
+		}
 		return reportPlugins;
 	}
 	/**
@@ -211,14 +290,18 @@ public class DisplayReportsSelector extends RmaJDialog
 		_agp = new AnimatedWaitGlassPane();
 		_agp.setTransparency(0.8f);
 		setGlassPane("Creating Reports...");
-		
-		List<ReportPlugin> plugins = ReportsManager.getPlugins();
-		List<ReportPlugin> pluginReports = getSelectedReports();
-		int maxThreads = Math.min(pluginReports.size(), Runtime.getRuntime().availableProcessors());
-		ExecutorService threadPool = Executors.newFixedThreadPool(maxThreads);
-		
+
 		try
 		{
+			List<ReportPlugin> plugins = ReportsManager.getPlugins();
+			List<ReportPlugin> pluginReports = getSelectedReports();
+			int maxThreads = Math.min(pluginReports.size(), Runtime.getRuntime().availableProcessors());
+			if ( maxThreads < 1 )
+			{
+				maxThreads = 1;
+			}
+			ExecutorService threadPool = Executors.newFixedThreadPool(maxThreads);
+		
 
 			SwingWorker<Void, Future<ReportCreator>> worker = new SwingWorker<Void, Future<ReportCreator>>()
 			{
@@ -281,6 +364,11 @@ public class DisplayReportsSelector extends RmaJDialog
 			worker.execute();
 
 		}
+		catch (Exception e )
+		{
+			Logger.getLogger(DisplayReportsSelector.class.getName()).warning("Exception running reports " + e);
+			resetGlassPane();
+		}
 		finally
 		{
 
@@ -315,6 +403,41 @@ public class DisplayReportsSelector extends RmaJDialog
 		}
 	}
 	
+	@Override
+	public void setVisible(boolean visible)
+	{
+		super.setVisible(visible);
+		if ( !visible)
+		{
+			if ( !_isCanceled)
+			{
+				saveSelectedReports();
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 */
+	private void saveSelectedReports()
+	{
+		Preferences node = WAT.getBrowserFrame().getPreferences().getProjectPreferenceNode().node(PREF_NODE);
+		try
+		{
+			node.clear();
+		}
+		catch (BackingStoreException e)
+		{
+			Logger.getLogger(DisplayReportsSelector.class.getName()).info("Failed to clear node "+node.absolutePath()+" Error:"+e);
+		}
+		List<ReportPlugin> selectedReports = getSelectedReports();
+		for (int i = 0;i < selectedReports.size();i++ )
+		{
+			String pluginName =selectedReports.get(i).getName();
+			node.put("SelectedReport"+i, pluginName);
+		}
+	}
+
 	/**
 	 * @author Mark Ackerman
 	 *
