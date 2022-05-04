@@ -30,6 +30,7 @@ import hec2.wat.plugin.ceQualW2.CeQualW2Plugin;
 import hec2.wat.plugin.ceQualW2.model.CeQualW2Alt;
 
 import rma.util.RMAIO;
+import usbr.wat.plugins.actionpanel.model.SimulationReportInfo;
 
 /**
  * @author Mark Ackerman
@@ -109,7 +110,7 @@ public class ReportXmlFile
 	private String _fileName;
 	private String _prjDir;
 	private String _obsDir;
-	private List<WatSimulation> _simulations;
+	private List<SimulationReportInfo> _simulationInfos;
 	private String _simGroupName;
 
 	public ReportXmlFile(String fileName)
@@ -124,10 +125,10 @@ public class ReportXmlFile
 		_obsDir = obsDir;
 	}
 	
-	public void setSimulations(String simGroupName, List<WatSimulation> sims)
+	public void setSimulationInfo(String simGroupName, List<SimulationReportInfo> infos)
 	{
 		_simGroupName = simGroupName;
-		_simulations = sims;
+		_simulationInfos = infos;
 	}
 	
 	public boolean createXMLFile()
@@ -137,7 +138,7 @@ public class ReportXmlFile
 
 		
 		String rptType = SINGLE_TYPE;
-		if ( _simulations.size() > 1 )
+		if ( _simulationInfos.size() > 1 )
 		{
 			rptType = COMPARISON_TYPE;
 		}
@@ -148,9 +149,9 @@ public class ReportXmlFile
 		
 		Element simsElem  = new Element(SIMS_ELEM);
 		root.addContent(simsElem);
-		for (int i = 0;i < _simulations.size(); i++ )
+		for (int i = 0;i < _simulationInfos.size(); i++ )
 		{
-			addSimulationInfo(simsElem, _simulations.get(i), i);
+			addSimulationInfo(simsElem, _simulationInfos.get(i), i);
 		}
 		
 		RmaFile file = FileManagerImpl.getFileManager().getFile(_fileName);
@@ -162,31 +163,31 @@ public class ReportXmlFile
 	 * @param simsElem
 	 * @param watSimulation
 	 */
-	private void addSimulationInfo(Element parent, WatSimulation sim, int simNumber)
+	private void addSimulationInfo(Element parent, SimulationReportInfo info, int simNumber)
 	{
 		Element simElem = new Element(SIM_ELEM);
 		parent.addContent(simElem);
-		XMLUtilities.addChildContent(simElem, SIM_NAME_ELEM, sim.getName());
+		XMLUtilities.addChildContent(simElem, SIM_NAME_ELEM, info.getName());
 		XMLUtilities.addChildContent(simElem, ID_ELEM, (simNumber==0?BASE_ALT:ALT_NUM+simNumber));
 		
-		XMLUtilities.addChildContent(simElem, BASE_SIM_NAME_ELEM, getBaseSimulationName(sim.getName()));
-		XMLUtilities.addChildContent(simElem, SIM_DIR_ELEM, sim.getSimulationDirectory());
-		XMLUtilities.addChildContent(simElem, SIM_DSS_FILE_ELEM, sim.getSimulationDssFile());
+		XMLUtilities.addChildContent(simElem, BASE_SIM_NAME_ELEM, getBaseSimulationName(info.getSimulation().getName()));
+		XMLUtilities.addChildContent(simElem, SIM_DIR_ELEM, info.getSimFolder());
+		XMLUtilities.addChildContent(simElem, SIM_DSS_FILE_ELEM, info.getSimDssFile());
 		
-		RunTimeWindow rtw = sim.getRunTimeWindow();
+		RunTimeWindow rtw = info.getSimulation().getRunTimeWindow();
 		XMLUtilities.addChildContent(simElem, SIM_START_TIME_ELEM, rtw.getStartTime().toString());
 		XMLUtilities.addChildContent(simElem, SIM_END_TIME_ELEM, rtw.getEndTime().toString());
 		
-		Date date = new Date(sim.getLastComputedDate());
+		Date date = new Date(info.getLastComputedDate());
 		HecTime computedDate = new HecTime(date, 0);
 		XMLUtilities.addChildContent(simElem, SIM_LAST_COMPUTED_ELEM, computedDate.toString());
 		
-		List<ModelAlternative> modelAlts = sim.getAllModelAlternativeList();
+		List<ModelAlternative> modelAlts = info.getSimulation().getAllModelAlternativeList();
 		Element modelAltsElem = new Element(MODEL_ALTS_ELEM);
 		simElem.addContent(modelAltsElem);
 		for(int i = 0;i < modelAlts.size();i++ )
 		{
-			addModelAltInfo(modelAltsElem, modelAlts.get(i), sim);
+			addModelAltInfo(modelAltsElem, modelAlts.get(i), info.getSimulation());
 		}
 	}
 

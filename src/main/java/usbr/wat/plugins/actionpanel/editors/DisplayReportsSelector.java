@@ -48,6 +48,7 @@ import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.model.ReportPlugin;
 import usbr.wat.plugins.actionpanel.model.ReportsManager;
 import usbr.wat.plugins.actionpanel.model.SimulationGroup;
+import usbr.wat.plugins.actionpanel.model.SimulationReportInfo;
 
 /**
  * @author Mark Ackerman
@@ -454,10 +455,10 @@ public class DisplayReportsSelector extends RmaJDialog
 			
 		}
 		
-		List<WatSimulation>sims = _parent.getSelectedSimulations();
+		List<SimulationReportInfo> sims = _parent.getSimulationReportInfos();
 		if ( sims.isEmpty())
 		{
-			JOptionPane.showMessageDialog(_parent,"Please select the simulations that you want to create reports for",
+			JOptionPane.showMessageDialog(_parent,"Please select the simulations/results that you want to create reports for",
 					"No Simulations Selected", JOptionPane.INFORMATION_MESSAGE);
 			return false;
 		}

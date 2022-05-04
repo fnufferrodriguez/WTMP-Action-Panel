@@ -59,12 +59,12 @@ public class CheckboxTree extends JTree
 	 */
 	public List<String> getCheckedSubmodules()
 	{
-		List<String> l = new ArrayList<String>();
+		List<String> l = new ArrayList<>();
 		getCheckedSubModules(l, _root);
 
 		return l;
 	}
-
+	
 	/**
 	 * @param l
 	 * @param root
@@ -77,11 +77,7 @@ public class CheckboxTree extends JTree
 		for (int i = 0;i < cnt; i++ )
 		{
 			child = (DefaultCheckBoxNode) parent.getChildAt(i);
-			if ( !child.isLeaf())
-			{
-				getCheckedSubModules(l, child);
-			}
-			else if ( child.isSelected())
+			if ( child.isSelected())
 			{
 				obj = child.getUserObject();
 				if ( obj instanceof String)
@@ -89,8 +85,14 @@ public class CheckboxTree extends JTree
 					l.add((String)obj);
 				}
 			}
+			if ( !child.isLeaf())
+			{
+				getCheckedSubModules(l, child);
+			}
+			
 		}
 	}
+	
 
 	/**
 	 * 
@@ -110,7 +112,7 @@ public class CheckboxTree extends JTree
 			{
 				DefaultCheckBoxNode node = new DefaultCheckBoxNode(subModules.get(i), this);
 				node.setSelected(true);
-				parent.add(node);
+				_root.add(node);
 			}
 			DefaultTreeModel treeModel = (DefaultTreeModel) getModel();
 			treeModel.nodeStructureChanged(_root);

@@ -68,7 +68,7 @@ public class DownloadConfirmDialog extends RmaJDialog
 		_repo = repo;
 		buildControls();
 		addListeners();
-		setSize(600,400);
+		setSize(600,600);
 		pack();
 		setLocationRelativeTo(getParent());
 		

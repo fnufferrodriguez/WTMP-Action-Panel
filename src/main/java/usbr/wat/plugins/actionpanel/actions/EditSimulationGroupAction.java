@@ -29,7 +29,7 @@ public class EditSimulationGroupAction extends AbstractAction
 	 */
 	public EditSimulationGroupAction(ActionsWindow parent)
 	{
-		super("Edit Simulation...");
+		super("Edit Simulation Group...");
 		setEnabled(false);
 		_parent = parent;
 	}

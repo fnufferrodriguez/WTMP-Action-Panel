@@ -27,6 +27,7 @@ public class ShowChangedLocalFilesAction extends AbstractGitAction
 {
 
 	private static final String CHANGES_CMD = "--changes";
+	private static final String ALL_FLAG_CMD = "--all";
 
 	private static final String NO_CHANGES = "No tracked files changed";
 	private static final String CHANGES_START = "Files Changed:";
@@ -67,6 +68,7 @@ public class ShowChangedLocalFilesAction extends AbstractGitAction
 		List<String>cmd = new ArrayList<>();
 		cmd.add(CHANGES_CMD);
 		cmd.add(LOCAL_FOLDER);
+		cmd.add(ALL_FLAG_CMD);
 		cmd.add(repo.getLocalPath());
 		
 		boolean rv = callGit(cmd);	

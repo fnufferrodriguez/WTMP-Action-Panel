@@ -19,30 +19,31 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.tree.MutableTreeNode;
+import javax.swing.tree.TreePath;
 
 import com.rma.client.Browser;
 import com.rma.client.LookAndFeel;
 import com.rma.event.ProjectAdapter;
 import com.rma.event.ProjectEvent;
+import com.rma.io.FileManagerImpl;
+import com.rma.io.RmaFile;
 import com.rma.model.Project;
 import com.rma.util.PlugInLoader;
 
 import hec.gui.NameDescriptionPanel;
 
-import hec2.plugin.model.ModelAlternative;
 import hec2.wat.model.WatAnalysisPeriod;
 import hec2.wat.model.WatSimulation;
 
@@ -50,12 +51,18 @@ import rma.swing.ColorIcon;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJDialog;
 import rma.swing.RmaJList;
-import rma.swing.RmaJTable;
 import rma.swing.list.RmaListModel;
+import rma.util.RMAFilenameFilter;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.actions.DisplayReportAction;
 import usbr.wat.plugins.actionpanel.gitIntegration.utils.GitRepoUtils;
+import usbr.wat.plugins.actionpanel.model.ResultsData;
 import usbr.wat.plugins.actionpanel.model.SimulationGroup;
+import usbr.wat.plugins.actionpanel.model.SimulationReportInfo;
+import usbr.wat.plugins.actionpanel.ui.tree.ResultsTreeTableNode;
+import usbr.wat.plugins.actionpanel.ui.tree.SimulationTreeTable;
+import usbr.wat.plugins.actionpanel.ui.tree.SimulationTreeTableModel;
+import usbr.wat.plugins.actionpanel.ui.tree.SimulationTreeTableNode;
 
 /**
  * @author Mark Ackerman
@@ -64,8 +71,6 @@ import usbr.wat.plugins.actionpanel.model.SimulationGroup;
 @SuppressWarnings("serial")
 public class ActionsWindow extends RmaJDialog
 {
-	private static final int SELECTED_COLUMN = 0;
-	private static final int SIMULATION_COLUMN = 1;
 	private static final Color NOT_COMPUTED_COLOR = Color.BLUE;
 	private static final Color COMPUTED_COLOR = Color.GREEN.darker();
 	private static final Color COMPUTED_ERROR_COLOR = Color.RED;
@@ -74,12 +79,13 @@ public class ActionsWindow extends RmaJDialog
 	private ActionsPanel _actionsPanel;
 	private JPanel _rightPanel;
 	private JLabel _apLabel;
-	private RmaJTable _simulationTable;
+	private SimulationTreeTable _simulationTable;
 	private RmaJList _statusList;
 	private NameDescriptionPanel _nameDescPanel;
 	private JLabel _apStartLabel;
 	private JLabel _apEndLabel;
 	private SimulationGroup _sg;
+	private SimulationActionsPanel _simActionsPanel;
 
 	public ActionsWindow(Frame parent)
 	{
@@ -181,7 +187,7 @@ public class ActionsWindow extends RmaJDialog
 		gbc.weighty   = 0.0;
 		gbc.anchor    = GridBagConstraints.NORTHWEST;
 		gbc.fill      = GridBagConstraints.NONE;
-		gbc.insets    = RmaInsets.INSETS5505;
+		gbc.insets    = RmaInsets.insets(5,15,0,5);
 		_rightPanel.add(label, gbc);
 		
 		_apStartLabel = new JLabel();
@@ -203,7 +209,7 @@ public class ActionsWindow extends RmaJDialog
 		gbc.weighty   = 0.0;
 		gbc.anchor    = GridBagConstraints.NORTHWEST;
 		gbc.fill      = GridBagConstraints.NONE;
-		gbc.insets    = RmaInsets.INSETS5505;
+		gbc.insets    = RmaInsets.insets(5,15,0,5);
 		_rightPanel.add(label, gbc);
 		
 		_apEndLabel = new JLabel();
@@ -240,7 +246,24 @@ public class ActionsWindow extends RmaJDialog
 		_rightPanel.add(label, gbc);	
 		
 		String[] headers = new String[] {"Selected", "Simulation", "Map", "Report"};
-		_simulationTable = new RmaJTable(this, headers)
+		_simulationTable = new SimulationTreeTable()
+		{
+			@Override
+			public String getToolTipText(MouseEvent e)
+			{
+				return getTableToolTipText(e);
+			}
+			@Override
+			public void setValueAt(Object value, int row, int col)
+			{
+				super.setValueAt(value, row, col);
+				if ( col == SimulationTreeTableModel.SELECTED_COLUMN )
+				{
+					tableCheckBoxAction();
+				}
+			}
+		};
+		/*
 		{
 			@Override
 			public Object getValueAt(int row, int col)
@@ -259,6 +282,8 @@ public class ActionsWindow extends RmaJDialog
 				}
 			}
 			@Override
+			
+			@Override
 			public boolean isCellEditable(int row, int col)
 			{
 				return col != 1;
@@ -269,20 +294,21 @@ public class ActionsWindow extends RmaJDialog
 				return getTableToolTipText(e);
 			}
 		};
-		JMenuItem showInProjectTreeMenu = new JMenuItem("Show In Study Tree");
-		showInProjectTreeMenu.addActionListener(e->showInProjectTreeAction());
-		_simulationTable.addPopupItem(showInProjectTreeMenu, 0);
-		_simulationTable.setColumnWidths(150,350,110,110);
-		_simulationTable.removePopupMenuSumOptions();
+		*/
+		
+		
+		_simulationTable.setColumnWidths(350,150,110,110);
+		
 		_simulationTable.setRowHeight(_simulationTable.getRowHeight()+5);
-		_simulationTable.setCheckBoxCellEditor(0);
+		
+		
 		JButton button = _simulationTable.setButtonCellEditor(2);
 		button.addActionListener(e->displaySimulationInMap());
 		button.setText("Show on Map");
 		button = _simulationTable.setButtonCellEditor(3);
 		button.setText("View Report");
 		button.addActionListener(e->displayReport());
-		_simulationTable.deleteCells();
+		//_simulationTable.deleteCells();
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -308,7 +334,18 @@ public class ActionsWindow extends RmaJDialog
 		
 		}
 		
-		_statusList = new RmaJList<>(new RmaListModel<String>(false));
+		_simActionsPanel = new SimulationActionsPanel(this);
+		gbc.gridx     = GridBagConstraints.RELATIVE;
+		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridwidth = GridBagConstraints.REMAINDER;
+		gbc.weightx   = 1.0;
+		gbc.weighty   = 0.0;
+		gbc.anchor    = GridBagConstraints.NORTHWEST;
+		gbc.fill      = GridBagConstraints.HORIZONTAL;
+		gbc.insets    = RmaInsets.INSETS5505;
+		_rightPanel.add(_simActionsPanel, gbc);
+		
+		_statusList = new RmaJList<>(new RmaListModel<>(false));
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -320,17 +357,30 @@ public class ActionsWindow extends RmaJDialog
 		_rightPanel.add(new JScrollPane(_statusList), gbc);
 	}
 	/**
+	 * @return
+	 */
+	private void tableCheckBoxAction()
+	{
+		EventQueue.invokeLater(()->_simActionsPanel.updateActions());
+	}
+
+
+	/**
 	 * @param e 
 	 * @return
 	 */
-	private void showInProjectTreeAction()
+	public void showInProjectTreeAction()
 	{
 		int row = _simulationTable.getSelectedRow();
 		if ( row < 0 )
 		{
 			return;
 		}
-		Object obj = _simulationTable.getValueAt(row, SIMULATION_COLUMN);
+		Object obj = _simulationTable.getValueAt(row, SimulationTreeTableModel.SIMULATION_COLUMN);
+		if ( obj instanceof ResultsData )
+		{
+			obj = ((ResultsData)obj).getSimulation();
+		}
 		if ( obj instanceof WatSimulation )
 		{
 			MutableTreeNode simNode = Browser.getBrowserFrame().getProjectTree().getNodeForManager((WatSimulation)obj);
@@ -355,26 +405,25 @@ public class ActionsWindow extends RmaJDialog
 		{
 			return null;
 		}
-		if ( col == SIMULATION_COLUMN )
+		if ( col == SimulationTreeTableModel.SIMULATION_COLUMN )
 		{
-			WatSimulation sim = (WatSimulation) _simulationTable.getValueAt(row, col);
-			List<ModelAlternative> modelAlts = sim.getAllModelAlternativeList();
-			StringBuilder tip = new StringBuilder();
-			ModelAlternative modelAlt;
-			tip.append("<html>");
-			for (int i = 0;i < modelAlts.size();i++)
+			TreePath treePath = _simulationTable.getPathForRow(row);
+			if ( treePath != null )
 			{
-				modelAlt = modelAlts.get(i);
-				if ( modelAlt != null )
+				Object lastComp = treePath.getLastPathComponent();
+				if ( lastComp instanceof SimulationTreeTableNode )
 				{
-					tip.append(modelAlt.getProgram());
-					tip.append(" : ");
-					tip.append(modelAlt.getName());
-					tip.append("<br>");
+					SimulationTreeTableNode simNode = (SimulationTreeTableNode) lastComp;
+					return simNode.getToolTipText();
+				}
+				else if ( lastComp instanceof ResultsTreeTableNode )
+				{
+					ResultsTreeTableNode resultsNode = (ResultsTreeTableNode) lastComp;
+					
+					return resultsNode.getToolTipText();
 				}
 			}
-			tip.append("</html>");
-			return tip.toString().trim();
+			
 		}
 		return null;
 	}
@@ -457,15 +506,18 @@ public class ActionsWindow extends RmaJDialog
 	/**
 	 * @return
 	 */
-	private void displayReport()
+	public void displayReport()
 	{
 		int row = _simulationTable.getSelectedRow();
 		if ( row == -1 )
 		{
 			return;
 		}
-		WatSimulation sim = (WatSimulation) _simulationTable.getValueAt(row, SIMULATION_COLUMN);	
-		
+		WatSimulation sim = (WatSimulation) _simulationTable.getValueAt(row, SimulationTreeTableModel.SIMULATION_COLUMN);	
+		displayReport(sim);
+	}
+	public void displayReport(WatSimulation sim )
+	{
 		DisplayReportAction action = new DisplayReportAction(this);
 		action.displayReportAction(sim);
 	}
@@ -503,14 +555,18 @@ public class ActionsWindow extends RmaJDialog
 	/**
 	 * @return
 	 */
-	private void displaySimulationInMap()
+	public void displaySimulationInMap()
 	{
 		int row = _simulationTable.getSelectedRow();
 		if ( row == -1 )
 		{
 			return;
 		}
-		WatSimulation sim = (WatSimulation) _simulationTable.getValueAt(row, SIMULATION_COLUMN);
+		WatSimulation sim = (WatSimulation) _simulationTable.getValueAt(row, SimulationTreeTableModel.SIMULATION_COLUMN);
+		displaySimulationInMap(sim);
+	}
+	public void displaySimulationInMap(WatSimulation sim)
+	{
 		if ( sim != null )
 		{
 			Browser.getBrowserFrame().displayManager(sim);
@@ -540,7 +596,8 @@ public class ActionsWindow extends RmaJDialog
 		_apLabel.setText("");
 		_apStartLabel.setText("");
 		_apEndLabel.setText("");
-		_simulationTable.deleteCells();
+		_simulationTable.setTreeTableModel(new SimulationTreeTableModel(null));
+		//_simulationTable.deleteCells();
 	}
 	
 	/**
@@ -567,10 +624,13 @@ public class ActionsWindow extends RmaJDialog
 		try
 		{
 			clearForm();
-			_simulationTable.deleteCells();
+			//_simulationTable.deleteCells();
 			_sg = sg;
 			if ( sg != null )
 			{
+				SimulationTreeTableModel newModel = new SimulationTreeTableModel(sg);
+				_simulationTable.setTreeTableModel(newModel);
+
 				_nameDescPanel.setName(sg.getName());
 				_nameDescPanel.setDescription(sg.getDescription());
 				WatAnalysisPeriod ap = sg.getAnalysisPeriod();
@@ -586,6 +646,7 @@ public class ActionsWindow extends RmaJDialog
 				_apLabel.setText(apName);
 				_apStartLabel.setText(apStart);
 				_apEndLabel.setText(apEnd);
+				/*
 				List<WatSimulation> sims= sg.getSimulations();
 				Vector row;
 				WatSimulation sim;
@@ -605,6 +666,7 @@ public class ActionsWindow extends RmaJDialog
 						_simulationTable.setRowForeground(_simulationTable.getRowCount()-1, color);
 					}
 				}
+				*/
 			}
 			else
 			{
@@ -665,25 +727,8 @@ public class ActionsWindow extends RmaJDialog
 	 */
 	public List<WatSimulation> getSelectedSimulations()
 	{
-		List<WatSimulation>selectedSims = new ArrayList<>();
-		int rowCnt = _simulationTable.getRowCount();
-		Object obj;
-		WatSimulation sim;
-		for (int r = 0;r < rowCnt; r++  )
-		{
-			obj = _simulationTable.getValueAt(r, SELECTED_COLUMN);
-			if (obj == null )
-			{
-				continue;
-			}
-			
-			if ( RMAIO.parseBoolean(obj.toString(), false))
-			{
-				sim = (WatSimulation) _simulationTable.getValueAt(r, SIMULATION_COLUMN);
-				selectedSims.add(sim);
-			}
-		}
-		return selectedSims;
+		return _simulationTable.getSelectedSimulations();
+		
 	}
 
 	/**
@@ -720,11 +765,103 @@ public class ActionsWindow extends RmaJDialog
 		Color fgColor ;
 		for(int r = 0;r < _simulationTable.getRowCount();r++)
 		{
-			sim = (WatSimulation) _simulationTable.getValueAt(r, SIMULATION_COLUMN);
+			sim = (WatSimulation) _simulationTable.getValueAt(r, SimulationTreeTableModel.SIMULATION_COLUMN);
 			fgColor = getSimForegroundColor(sim);
 			_simulationTable.setRowForeground(r, fgColor);
 		}
 		
+	}
+
+
+	/**
+	 * @return
+	 */
+	public SimulationTreeTable getSimulationTreeTable()
+	{
+		return _simulationTable;
+	}
+
+
+	/**
+	 * @return 
+	 * @return
+	 */
+	public List<ResultsData> getSelectedResults()
+	{
+		return _simulationTable.getSelectedResults();
+	}
+
+
+	/**
+	 * get the info needed from the selected rows in the table to generate a report
+	 * @return
+	 */
+	public List<SimulationReportInfo> getSimulationReportInfos()
+	{
+		List<SimulationReportInfo>simInfos = new ArrayList<>();
+		List<WatSimulation> selectedSims = getSelectedSimulations();
+		List<ResultsData> selectedResults = getSelectedResults();
+		SimulationReportInfo simInfo;
+		WatSimulation sim;
+		ResultsData results;
+		for (int i = 0;i < selectedSims.size(); i++ )
+		{
+			sim = selectedSims.get(i);
+			simInfo = new SimulationReportInfo();
+			simInfo.setSimulation(sim);
+			simInfo.setSimDssFile(sim.getSimulationDssFile());
+			simInfo.setSimFolder(sim.getSimulationDirectory());
+			simInfo.setName(sim.getName());
+			simInfo.setLastComputedDate(new Date(sim.getLastComputedDate()).toString());
+			
+			simInfos.add(simInfo);
+		}
+		for (int i = 0;i < selectedResults.size(); i++ )
+		{
+			results = selectedResults.get(i);
+			simInfo = new SimulationReportInfo();
+			simInfo.setSimulation(results.getSimulation());
+			simInfo.setSimDssFile(findSimulationDssFile(results.getFolder(),results.getSimulation().getSimulationDssFile()));
+			simInfo.setSimFolder(results.getFolder());
+			String name = results.getSimulation().getName().concat(" - ").concat(results.getName());
+			simInfo.setName(name);
+			simInfo.setLastComputedDate(new Date(results.getLastComputedTime()).toString());
+			
+			simInfos.add(simInfo);	
+		}
+		
+		
+		
+		
+		return simInfos;
+	}
+
+
+	/**
+	 * @param folder
+	 * @param simulationDssFile
+	 * @return
+	 */
+	private String findSimulationDssFile(String folder,
+			String simulationDssFile)
+	{
+		String lookForDssFile = RMAIO.getFileFromPath(simulationDssFile);
+		RmaFile folderFile = FileManagerImpl.getFileManager().getFile(folder);
+		RMAFilenameFilter filter = new RMAFilenameFilter("dss");
+		filter.setAcceptDirectories(false);
+		File[] dssFiles = folderFile.listFiles(filter);
+		if ( dssFiles != null )
+		{
+			for (int i = 0;i < dssFiles.length;)
+			{
+				String name = dssFiles[i].getName();
+				if ( name.equalsIgnoreCase(lookForDssFile))
+				{
+					return dssFiles[i].getAbsolutePath();
+				}
+			}
+		}
+		return "";
 	}
 	
 }
