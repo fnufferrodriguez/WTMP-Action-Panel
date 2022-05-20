@@ -28,12 +28,17 @@ import javax.swing.JSeparator;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 
+import com.rma.model.Project;
+
 import rma.swing.ButtonCmdPanel;
 import rma.swing.ButtonCmdPanelListener;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJDialog;
 import rma.swing.RmaJTextArea;
 import rma.swing.RmaJTextField;
+import usbr.wat.plugins.actionpanel.gitIntegration.actions.AbstractGitAction;
+import usbr.wat.plugins.actionpanel.gitIntegration.actions.FetchAction;
+import usbr.wat.plugins.actionpanel.gitIntegration.actions.OkToPushAction;
 import usbr.wat.plugins.actionpanel.gitIntegration.actions.ShowChangedLocalFilesAction;
 import usbr.wat.plugins.actionpanel.gitIntegration.model.RepoInfo;
 import usbr.wat.plugins.actionpanel.gitIntegration.ui.CheckboxTree;
@@ -362,7 +367,31 @@ public class EnterCommentsDlg extends RmaJDialog
 	private void getChanges()
 	{
 		EventQueue.invokeLater(()-> getChangedFiles());
+		EventQueue.invokeLater(()-> okToPush());
 	}
+
+	/**
+	 * @return
+	 */
+	private void okToPush()
+	{
+		List<String>cmd = new ArrayList<>();
+		cmd.add(AbstractGitAction.LOCAL_FOLDER);
+		cmd.add(Project.getCurrentProject().getProjectDirectory());
+		cmd.add(FetchAction.FETCH_CMD);
+		cmd.add(AbstractGitAction.ALL_MODULES);
+		OkToPushAction okToPush = new OkToPushAction(cmd, _studyStorageDialog);
+		if ( !okToPush.isOkToPush())
+		{
+			_cmdPanel.getButton(ButtonCmdPanel.OK_BUTTON).setEnabled(false);
+		}
+		else
+		{
+			_cmdPanel.getButton(ButtonCmdPanel.OK_BUTTON).setEnabled(true);
+		}
+		
+	}
+
 
 	private void getChangedFiles()
 	{

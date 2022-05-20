@@ -26,7 +26,7 @@ import usbr.wat.plugins.actionpanel.gitIntegration.model.RepoInfo;
 @SuppressWarnings("serial")
 public class UploadStudyAction extends AbstractGitAction
 {
-	private static final String UPLOAD_CMD = "--upload";
+	public static final String UPLOAD_CMD = "--upload";
 
 	private static final String COMMENTS_FILE = "--commentsfile";
 
@@ -89,6 +89,11 @@ public class UploadStudyAction extends AbstractGitAction
 					cmd.add(module);
 				}
 			}
+		}
+		OkToPushAction okToPush = new OkToPushAction(cmd, _studyStorageDialog);
+		if ( !okToPush.isOkToPush())
+		{
+			return false;
 		}
 		if ( commentsFile!=null )
 		{

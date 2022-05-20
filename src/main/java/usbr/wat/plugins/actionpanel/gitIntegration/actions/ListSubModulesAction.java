@@ -12,7 +12,6 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import hec.io.ProcessOutputLine;
 
@@ -72,14 +71,7 @@ public class ListSubModulesAction extends AbstractGitAction
 		return new ArrayList<>();	
 	}
 
-	/**
-	 * @param output
-	 * @return
-	 */
-	static List<String> getOutputLines(List<ProcessOutputLine> output)
-	{
-		return output.stream().map(l->l.getLine()).collect(Collectors.toList());
-	}
+	
 
 	/**
 	 * @param output

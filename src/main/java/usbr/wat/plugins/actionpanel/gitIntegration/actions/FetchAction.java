@@ -12,7 +12,6 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.swing.JOptionPane;
 
@@ -29,7 +28,7 @@ import usbr.wat.plugins.actionpanel.gitIntegration.model.RepoInfo;
 @SuppressWarnings("serial")
 public class FetchAction extends AbstractGitAction
 {
-	private static final String FETCH_CMD = "--fetch";
+	public static final String FETCH_CMD = "--fetch";
 	private static final String CHANGES_START = "Pending Changes:";
 	private static final String NO_CHANGES = "No files changed";
 	private StudyStorageDialog _studyStorageDialog;
@@ -81,14 +80,7 @@ public class FetchAction extends AbstractGitAction
 		return new ArrayList<>();
 	}
 
-	/**
-	 * @param output
-	 * @return
-	 */
-	private static List<String> getOutputLines(List<ProcessOutputLine> output)
-	{
-		return output.stream().map(l->l.getLine()).collect(Collectors.toList());
-	}
+	
 
 	/**
 	 * @param output

@@ -16,6 +16,7 @@ import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.swing.AbstractAction;
 import javax.swing.JOptionPane;
@@ -50,7 +51,7 @@ public abstract class AbstractGitAction extends AbstractAction
 	private static final String EXE_FOLDER = "../tools"; // folder the .exe lives in relative to where the WAT.exe is
 	protected static final String GIT_PYTHON_EXE = "WAT_GIT_Tool_v2.exe";
 	
-	protected static final String LOCAL_FOLDER = "--folder";
+	public static final String LOCAL_FOLDER = "--folder";
 	
 	protected static final String DO_NOTHING = "--donothing";
 
@@ -67,6 +68,9 @@ public abstract class AbstractGitAction extends AbstractAction
 
 
 	private List<ProcessOutputLine> _output;
+
+
+	private boolean _showFailedCallMsg;
 	
 	/**
 	 * @param string
@@ -132,20 +136,9 @@ public abstract class AbstractGitAction extends AbstractAction
 			int rv = proc.waitFor();
 			if ( rv != 0 )
 			{
-				String msg = getErrorMessage(cmd, _output);
 				_logger.info(cmd.get(0)+" exit code="+rv);
-				_logger.info(msg);
+				showErrorMsg(cmd, _output);
 				
-				// this might make too big a message and needs put in a panel with a text area
-				if ( _parent != null )
-				{
-					RmaJTextArea textArea = new RmaJTextArea(5, 80);
-					textArea.setEditable(false);
-					JScrollPane sp = new JScrollPane(textArea);
-					textArea.setText(msg);
-					
-					JOptionPane.showMessageDialog(_parent, sp, "Error", JOptionPane.ERROR_MESSAGE);
-				}
 				return false;
 			}
 			else
@@ -190,16 +183,56 @@ public abstract class AbstractGitAction extends AbstractAction
 		return false;
 	}
 	/**
+	 * @param cmd
+	 * @param output
+	 */
+	protected void showErrorMsg(List<String> cmd, List<ProcessOutputLine> output)
+	{
+		String msg = getErrorMessage("Error Running:", cmd, _output);
+		_logger.info(msg);
+		if ( !_showFailedCallMsg )
+		{
+			return;
+		}
+		// this might make too big a message and needs put in a panel with a text area
+		if ( _parent != null )
+		{
+			showErrorMsg("Error", msg);
+			
+		}
+	}
+	/**
+	 * @param msg
+	 */
+	protected void showErrorMsg(String title, String msg)
+	{
+		RmaJTextArea textArea = new RmaJTextArea(5, 80);
+		textArea.setEditable(false);
+		JScrollPane sp = new JScrollPane(textArea);
+		textArea.setText(msg);
+		
+		JOptionPane.showMessageDialog(_parent, sp, title, JOptionPane.ERROR_MESSAGE);
+	}
+
+	public void setShowFailedCallMessage(boolean showMsg)
+	{
+		_showFailedCallMsg = showMsg;
+	}
+
+	/**
 	 * 
 	 * @param output2 
 	 * @param outputReader
 	 * @param errorReader
 	 * @return
 	 */
-	private static String getErrorMessage(List<String>cmd, List<ProcessOutputLine> output)
+	protected static String getErrorMessage(String header, List<String>cmd, List<ProcessOutputLine> output)
 	{
 		StringBuilder builder = new StringBuilder();
-		builder.append("Error Running: ");
+		if ( header != null )
+		{
+			builder.append(header);//"Error Running: ");
+		}
 		builder.append(cmd);
 		builder.append("\n");
 		for (int i = 0;i < output.size(); i++ )
@@ -247,4 +280,12 @@ public abstract class AbstractGitAction extends AbstractAction
 		return _output;
 	}
 
+	/**
+	 * @param output
+	 * @return
+	 */
+	protected static List<String> getOutputLines(List<ProcessOutputLine> output)
+	{
+		return output.stream().map(l->l.getLine()).collect(Collectors.toList());
+	}
 }
