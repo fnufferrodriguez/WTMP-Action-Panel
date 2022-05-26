@@ -378,6 +378,11 @@ public class StudyStorageDialog extends RmaJDialog
 				}
 			}
 		};
+		if ( _timer != null )
+		{
+			_timer.stop();
+			_timer = null;
+		}
 		_timer = new Timer(3*1000*60, al); // every 3 minutes check
 		_timer.start();
 		
@@ -534,6 +539,7 @@ public class StudyStorageDialog extends RmaJDialog
 			if ( _timer != null )
 			{
 				_timer.stop();
+				_timer = null;
 			}
 		}
 		
