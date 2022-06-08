@@ -7,6 +7,7 @@
 */
 package usbr.wat.plugins.actionpanel.gitIntegration.actions;
 
+import java.awt.Cursor;
 import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
@@ -78,49 +79,58 @@ public class DownloadStudyAction extends AbstractGitAction
 					"No Repo Selected", JOptionPane.INFORMATION_MESSAGE);
 			return false;
 		}
-		List<String>cmd = new ArrayList<>();
-		String gitCmd = null;
-		String gitFolder = RMAIO.concatPath(_repo.getLocalPath(), GitRepoUtils.GIT_FOLDER);
-		if ( FileManagerImpl.getFileManager().fileExists(gitFolder))
-		{   // folder exists, so its a download.
-			gitCmd = DOWNLOAD_CMD;
-			if ( !showDownloadDialog())
-			{
-				return false;
-			}
-			List<String>modules = getSubModules();
-			if ( modules != null && modules.size() > 0 )
-			{
-				String module;
-				for (int i = 0;i < modules.size(); i++ )
+		try
+		{
+			getParent().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));	
+			List<String>cmd = new ArrayList<>();
+			String gitCmd = null;
+			String gitFolder = RMAIO.concatPath(_repo.getLocalPath(), GitRepoUtils.GIT_FOLDER);
+			if ( FileManagerImpl.getFileManager().fileExists(gitFolder))
+			{   // folder exists, so its a download.
+				gitCmd = DOWNLOAD_CMD;
+				if ( !showDownloadDialog())
 				{
-					module = modules.get(i);
-					if ( AbstractGitAction.STUDY_MODULE.equals(module)) 
+					return false;
+				}
+				List<String>modules = getSubModules();
+				if ( modules != null && modules.size() > 0 )
+				{
+					String module;
+					for (int i = 0;i < modules.size(); i++ )
 					{
-						cmd.add(MAIN_MODULE);
-					}
-					else
-					{
-						cmd.add(SUB_MODULE);
-						cmd.add(module);
+						module = modules.get(i);
+						if ( AbstractGitAction.STUDY_MODULE.equals(module)) 
+						{
+							cmd.add(MAIN_MODULE);
+						}
+						else
+						{
+							cmd.add(SUB_MODULE);
+							cmd.add(module);
+						}
 					}
 				}
 			}
+			else
+			{ // no folder so its a clone
+				gitCmd = CLONE_CMD;
+			}
+			cmd.add(gitCmd);
+			cmd.add(LOCAL_FOLDER);
+			cmd.add(_repo.getLocalPath());
+			if ( CLONE_CMD.equals(gitCmd))
+			{
+				cmd.add(REMOTE);
+				cmd.add(quoteString(_repo.getSourceUrl()));
+			}
+
+			return callGit(cmd);
 		}
-		else
-		{ // no folder so its a clone
-			gitCmd = CLONE_CMD;
-		}
-		cmd.add(gitCmd);
-		cmd.add(LOCAL_FOLDER);
-		cmd.add(_repo.getLocalPath());
-		if ( CLONE_CMD.equals(gitCmd))
+		finally
 		{
-			cmd.add(REMOTE);
-			cmd.add(quoteString(_repo.getSourceUrl()));
+
+			getParent().setCursor(Cursor.getDefaultCursor());
 		}
-		
-		return callGit(cmd);
 	}
 	
 	private List<String> getSubModules()

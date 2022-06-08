@@ -7,6 +7,7 @@
 */
 package usbr.wat.plugins.actionpanel.gitIntegration.actions;
 
+import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -14,6 +15,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.swing.JOptionPane;
 
 import usbr.wat.plugins.actionpanel.gitIntegration.EnterCommentsDlg;
 import usbr.wat.plugins.actionpanel.gitIntegration.StudyStorageDialog;
@@ -66,47 +69,66 @@ public class UploadStudyAction extends AbstractGitAction
 				return false;
 			}
 		}
-		RepoInfo info = _studyStorageDialog.getSelectedRepo();
-		List<String>cmd = new ArrayList<>();
-		cmd.add(UPLOAD_CMD);
-		cmd.add(LOCAL_FOLDER);
-		cmd.add(quoteString(info.getLocalPath()));
-		
-		List<String>modules = getSubModules();
-		if ( modules != null && modules.size() > 0 )
+		_studyStorageDialog.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		try
 		{
-			String module;
-			for (int i = 0;i < modules.size(); i++ )
+			RepoInfo info = _studyStorageDialog.getSelectedRepo();
+			List<String>cmd = new ArrayList<>();
+			cmd.add(UPLOAD_CMD);
+			cmd.add(LOCAL_FOLDER);
+			cmd.add(quoteString(info.getLocalPath()));
+
+			List<String>modules = getSubModules();
+			if ( modules != null && modules.size() > 0 )
 			{
-				module = modules.get(i);
-				if ( AbstractGitAction.STUDY_MODULE.equals(module)) 
+				String module;
+				for (int i = 0;i < modules.size(); i++ )
 				{
-					cmd.add(MAIN_MODULE);
-				}
-				else
-				{
-					cmd.add(SUB_MODULE);
-					cmd.add(module);
+					module = modules.get(i);
+					if ( AbstractGitAction.STUDY_MODULE.equals(module)) 
+					{
+						cmd.add(MAIN_MODULE);
+					}
+					else
+					{
+						cmd.add(SUB_MODULE);
+						cmd.add(module);
+					}
 				}
 			}
+			OkToPushAction okToPush = new OkToPushAction(cmd, _studyStorageDialog);
+			if ( !okToPush.isOkToPush())
+			{
+				return false;
+			}
+			if ( commentsFile!=null )
+			{
+				cmd.add(COMMENTS_FILE);
+				cmd.add(commentsFile);
+			}
+			else
+			{
+				cmd.add(COMMENTS);
+				cmd.add(quoteString(comments));
+
+			}
+			boolean rv = callGit(cmd);
+			String msg = "Upload was successful";
+			String title = "Success";
+			if ( !rv )
+			{
+				msg = "Upload Failed";
+				title = "Failed";
+			}
+
+			JOptionPane.showMessageDialog(_studyStorageDialog, msg, title, JOptionPane.INFORMATION_MESSAGE);
+			return rv;
 		}
-		OkToPushAction okToPush = new OkToPushAction(cmd, _studyStorageDialog);
-		if ( !okToPush.isOkToPush())
+		finally
 		{
-			return false;
-		}
-		if ( commentsFile!=null )
-		{
-			cmd.add(COMMENTS_FILE);
-			cmd.add(commentsFile);
-		}
-		else
-		{
-			cmd.add(COMMENTS);
-			cmd.add(quoteString(comments));
 			
+			_studyStorageDialog.setCursor(Cursor.getDefaultCursor());
 		}
-		return callGit(cmd);
 	}
 	
 	
