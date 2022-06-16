@@ -7,6 +7,8 @@
  */
 package usbr.wat.plugins.actionpanel.model;
 
+import java.util.List;
+
 import usbr.wat.plugins.actionpanel.io.ReportOptions;
 
 /**
@@ -17,10 +19,11 @@ public interface ReportPlugin
 {
 
 	/**
+	 * @param sris 
 	 * @return 
 	 * 
 	 */
-	boolean createReport(ReportOptions options);
+	boolean createReport(List<SimulationReportInfo> sris, ReportOptions options);
 
 	/**
 	 * @return

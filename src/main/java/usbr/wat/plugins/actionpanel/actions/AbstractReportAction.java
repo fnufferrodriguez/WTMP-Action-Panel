@@ -36,6 +36,7 @@ import net.sf.jasperreports.engine.JasperCompileManager;
 import rma.swing.RmaJDialog;
 import rma.util.RMAFilenameFilter;
 import rma.util.RMAIO;
+import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.io.OutputType;
 import usbr.wat.plugins.actionpanel.io.ReportOptions;
 import usbr.wat.plugins.actionpanel.model.ReportPlugin;
@@ -77,7 +78,7 @@ public abstract class AbstractReportAction extends AbstractAction
 	{
 		ReportOptions options = new ReportOptions();
 		options.setOutputType(OutputType.PDF);
-		createReport(options);
+		createReport(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationReportInfos(), options );
 	}
 	/**
 	 * @param reportFile

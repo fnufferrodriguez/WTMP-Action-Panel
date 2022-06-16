@@ -840,7 +840,9 @@ public class ActionsWindow extends RmaJDialog
 			simInfo.setSimDssFile(sim.getSimulationDssFile());
 			simInfo.setSimFolder(sim.getSimulationDirectory());
 			simInfo.setName(sim.getName());
+			simInfo.setDescription(sim.getDescription());
 			simInfo.setLastComputedDate(new Date(sim.getLastComputedDate()).toString());
+			simInfo.setIsSimulation(true);
 			
 			simInfos.add(simInfo);
 		}
@@ -853,7 +855,9 @@ public class ActionsWindow extends RmaJDialog
 			simInfo.setSimFolder(results.getFolder());
 			String name = results.getSimulation().getName().concat(" - ").concat(results.getName());
 			simInfo.setName(name);
+			simInfo.setDescription(results.getDescription());
 			simInfo.setLastComputedDate(new Date(results.getLastComputedTime()).toString());
+			simInfo.setIsSimulation(false);
 			
 			simInfos.add(simInfo);	
 		}

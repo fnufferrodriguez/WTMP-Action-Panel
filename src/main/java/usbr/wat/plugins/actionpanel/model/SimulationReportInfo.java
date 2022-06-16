@@ -17,10 +17,12 @@ import hec2.wat.model.WatSimulation;
 public class SimulationReportInfo
 {
 	private String _name;
+	private String _description;
 	private WatSimulation _sim;
 	private String _simFolder;
 	private String _simDssFile;
 	private String _lastComputedDate;
+	private boolean _isSimulation;
 
 	public SimulationReportInfo()
 	{
@@ -34,6 +36,15 @@ public class SimulationReportInfo
 	public String getName()
 	{
 		return _name;
+	}
+	
+	/**
+	 * the description for the report
+	 * @return
+	 */
+	public String getDescription()
+	{
+		return _description;
 	}
 
 	/**
@@ -102,6 +113,14 @@ public class SimulationReportInfo
 	{
 		_name = name;
 	}
+	
+	/**
+	 * @param desc
+	 */
+	public void setDescription(String desc)
+	{
+		_description = desc;
+	}
 
 	/**
 	 * @param lastComputedDate
@@ -109,5 +128,25 @@ public class SimulationReportInfo
 	public void setLastComputedDate(String lastComputedDate)
 	{
 		_lastComputedDate  = lastComputedDate;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return getName();
+	}
+
+	/**
+	 * set whether this represents a simulation or a saved results
+	 * @param isSim true if its for a simulation 
+	 */
+	public void setIsSimulation(boolean isSim)
+	{
+		_isSimulation = isSim;
+	}
+	
+	public boolean isSimulation()
+	{
+		return _isSimulation;
 	}
 }

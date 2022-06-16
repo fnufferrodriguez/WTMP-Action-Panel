@@ -10,15 +10,21 @@ package usbr.wat.plugins.actionpanel.editors;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Vector;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,35 +34,43 @@ import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
-import javax.swing.BorderFactory;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTree;
 import javax.swing.SwingWorker;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 
 import com.rma.io.FileManagerImpl;
+import com.rma.swing.tree.DefaultCheckBoxNode;
 
 import hec.util.AnimatedWaitGlassPane;
 
 import hec2.wat.WAT;
-import hec2.wat.model.WatSimulation;
 
 import rma.swing.ButtonCmdPanel;
 import rma.swing.ButtonCmdPanelListener;
+import rma.swing.RmaImage;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJCheckBox;
 import rma.swing.RmaJComboBox;
 import rma.swing.RmaJDialog;
 import rma.swing.RmaJTable;
-import rma.util.RMAIO;
+import rma.swing.tree.CheckBoxTreeRenderer;
+import rma.swing.tree.LabelIconObject;
+import rma.swing.tree.NodeSelectionListener;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.io.OutputType;
 import usbr.wat.plugins.actionpanel.io.ReportOptions;
 import usbr.wat.plugins.actionpanel.model.ReportPlugin;
 import usbr.wat.plugins.actionpanel.model.ReportsManager;
-import usbr.wat.plugins.actionpanel.model.SimulationGroup;
 import usbr.wat.plugins.actionpanel.model.SimulationReportInfo;
 
 /**
@@ -82,6 +96,11 @@ public class DisplayReportsSelector extends RmaJDialog
 	private boolean _isCanceled;
 	private RmaJComboBox<OutputType> _outputTypeCombo;
 	private RmaJCheckBox _printHeaderFooterCheck;
+	private JPanel _reportPanel;
+	private JPanel _simPanel;
+	private RmaJTable _simTable;
+	private CheckboxTree _reportsTree;
+	private DefaultMutableTreeNode _rootNode;
 
 	public DisplayReportsSelector(ActionsWindow parent)
 	{
@@ -89,7 +108,6 @@ public class DisplayReportsSelector extends RmaJDialog
 		_parent =parent;
 		buildControls();
 		addListeners();
-		fillForm();
 		pack();
 		setSize(500,500);
 		setLocationRelativeTo(getParent());
@@ -103,28 +121,14 @@ public class DisplayReportsSelector extends RmaJDialog
 	 */
 	protected void buildControls()
 	{
+		
+		
 		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 		
 		getContentPane().setLayout(new GridBagLayout());
-		setTitle("Select Reports");
-		
-		((JComponent)getContentPane()).setBorder(BorderFactory.createTitledBorder("Available Reports"));
+		setTitle("Select Reports to Create");
 	
-		String[] headers = new String[] {"Select", "Report", "Description"};
-		_reportTable = new RmaJTable(this, headers)
-		{
-			@Override
-			public void setValueAt(Object value, int row, int col)
-			{
-				super.setValueAt(value, row, col);
-				if ( col == 0 )
-				{
-					updateCreateReportButtonState();
-				}
-			}
-		};
-		_reportTable.setCheckBoxCellEditor(0);
-		_reportTable.setRowHeight(_reportTable.getRowHeight()+5);
+		_reportsTree = new CheckboxTree();
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
@@ -134,7 +138,7 @@ public class DisplayReportsSelector extends RmaJDialog
 		gbc.anchor    = GridBagConstraints.NORTHWEST;
 		gbc.fill      = GridBagConstraints.BOTH;
 		gbc.insets    = RmaInsets.INSETS5505;
-		getContentPane().add(_reportTable.getScrollPane(), gbc);
+		getContentPane().add(new JScrollPane(_reportsTree), gbc);
 		
 		JPanel optionsPanel = new JPanel(new GridBagLayout());
 		gbc.gridx     = GridBagConstraints.RELATIVE;
@@ -202,7 +206,7 @@ public class DisplayReportsSelector extends RmaJDialog
 		gbc.weighty   = 0.0;
 		gbc.anchor    = GridBagConstraints.SOUTHWEST;
 		gbc.fill      = GridBagConstraints.HORIZONTAL;
-		gbc.insets    = RmaInsets.INSETS5505;
+		gbc.insets    = RmaInsets.INSETS5555;
 		getContentPane().add(_cmdPanel, gbc);
 		
 		
@@ -251,56 +255,39 @@ public class DisplayReportsSelector extends RmaJDialog
 	}
 	
 	/**
+	 * @param sims2 
 	 * 
 	 */
-	private void fillForm()
+	private void fillForm(List<SimulationReportInfo> sims)
 	{
+		
+		_rootNode = new DefaultMutableTreeNode();
+		DefaultTreeModel model = new DefaultTreeModel(_rootNode);
 		
 		List<ReportPlugin> plugins = ReportsManager.getPlugins();
-		SimulationGroup simGroup = _parent.getSimulationGroup();
-		List<WatSimulation>sims = _parent.getSelectedSimulations();
 		boolean canBeComparisionReport = sims.size()>1;
-		
-		List<ReportPlugin>reportsToUse = new ArrayList<>();
-		ReportPlugin reportPlugin;
-		for (int i = 0; i < plugins.size(); i++ )
-		{
-			reportPlugin = plugins.get(i);
-			if ( reportPlugin.isComparisonReport() )
-			{
-				if ( canBeComparisionReport )
-				{
-					reportsToUse.add(reportPlugin);
-				}
-			}
-			else
-			{
-				reportsToUse.add(reportPlugin);
-			}
-		}
-		fillTable(reportsToUse);
-	}
-	/**
-	 * @param reportsToUse
-	 */
-	private void fillTable(List<ReportPlugin> reportsToUse)
-	{
-		_reportTable.deleteCells();
-		Vector row;
 		ReportPlugin plugin;
-		for(int i = 0;i < reportsToUse.size();i++ )
+		for(int s = 0;s < sims.size();s++ )
 		{
-			row = new Vector();
-			plugin = reportsToUse.get(i);
-			row.add(shouldBeSelected(plugin));
-			row.add(plugin);
-			row.add(plugin.getDescription());
-			_reportTable.appendRow(row);
+			SimulationReportInfo sim = sims.get(s);
+			LabelIconObject lio = new ReportObject(sim);
+			DefaultMutableTreeNode simNode = new DefaultMutableTreeNode(lio);
+			_rootNode.add(simNode);
+			
+			for (int r = 0;r < plugins.size();r++  ) 
+			{
+				plugin = plugins.get(r);
+				CheckBoxNode rptNode = new CheckBoxNode(plugins.get(r), _reportsTree);
+				rptNode.setSelected(shouldBeSelected(plugin));
+				simNode.add(rptNode);
+			}
 		}
+		_reportsTree.setModel(model);
+		_reportsTree.expandAll(true);
+		
 		
 		updateCreateReportButtonState();
 	}
-
 
 
 	/**
@@ -340,28 +327,52 @@ public class DisplayReportsSelector extends RmaJDialog
 		
 	}
 
-
+	public Map<ReportPlugin, List<SimulationReportInfo>>getSelectedReports()
+	{
+		Map<ReportPlugin, List<SimulationReportInfo>>reportsMap = new HashMap<>();
+		getSelectedReports(reportsMap, _rootNode);
+		return reportsMap;
+	}
 
 	/**
 	 * @return
 	 */
-	protected List<ReportPlugin> getSelectedReports()
+	protected Map<ReportPlugin, List<SimulationReportInfo>> getSelectedReports(Map<ReportPlugin, List<SimulationReportInfo>> reports, DefaultMutableTreeNode parent)
 	{
 		List<ReportPlugin>reportPlugins = new ArrayList<>();
-		int rowCnt = _reportTable.getRowCount();
+		int rowCnt = _reportsTree.getRowCount();
 		Object obj;
-		for (int r = 0;r < rowCnt; r++)
+		int cnt = parent.getChildCount();
+		DefaultCheckBoxNode child;
+		List<SimulationReportInfo> sris;
+		ReportObject ro;
+		Object childObj;
+		for (int i = 0;i < cnt; i++ )
 		{
-			obj = _reportTable.getValueAt(r, SELECTED_COL);
-			if ( obj != null )
+			childObj = parent.getChildAt(i);
+			if ( childObj instanceof DefaultCheckBoxNode && ((DefaultCheckBoxNode)childObj).isSelected())
 			{
-				if  ( RMAIO.parseBoolean(obj.toString(), false))
+				child = (DefaultCheckBoxNode) childObj;
+				obj = child.getUserObject();
+				if ( obj instanceof ReportPlugin)
 				{
-					reportPlugins.add((ReportPlugin) _reportTable.getValueAt(r, REPORT_COL));
+					ReportPlugin plugin = (ReportPlugin) obj;
+					sris = reports.get(plugin);
+					if ( sris == null )
+					{
+						sris = new ArrayList<>();
+						reports.put(plugin, sris);
+					}
+					ro = (ReportObject) parent.getUserObject();
+					sris.add(ro.getSimulationReportInfo());
 				}
 			}
+			if ( !((TreeNode)childObj).isLeaf())
+			{
+				getSelectedReports(reports, (DefaultMutableTreeNode)childObj);
+			}
 		}
-		return reportPlugins;
+		return reports;
 	}
 	/**
 	 * 
@@ -375,7 +386,8 @@ public class DisplayReportsSelector extends RmaJDialog
 		try
 		{
 			List<ReportPlugin> plugins = ReportsManager.getPlugins();
-			List<ReportPlugin> pluginReports = getSelectedReports();
+			Map<ReportPlugin, List<SimulationReportInfo>> pluginReports = getSelectedReports();
+			
 			int maxThreads = Math.min(pluginReports.size(), Runtime.getRuntime().availableProcessors());
 			if ( maxThreads < 1 )
 			{
@@ -389,18 +401,20 @@ public class DisplayReportsSelector extends RmaJDialog
 				@Override
 				public Void doInBackground()
 				{
-					
-					for (int i = 0; i< pluginReports.size();i++ )
+					Set<Entry<ReportPlugin, List<SimulationReportInfo>>> info = pluginReports.entrySet();
+					Iterator<Entry<ReportPlugin, List<SimulationReportInfo>>> iter = info.iterator();
+					while (iter.hasNext())
 					{
-						Future<ReportCreator> future = createReport(pluginReports.get(i));
-						this.publish(future);
+						Entry<ReportPlugin, List<SimulationReportInfo>> next = iter.next();
+						Future<ReportCreator> future = createReport(next.getKey(), next.getValue());
+						publish(future);
 					}
 
 					return null;
 				}
-				private Future<ReportCreator> createReport( ReportPlugin reportPlugin)
+				private Future<ReportCreator> createReport( ReportPlugin reportPlugin, List<SimulationReportInfo> sris)
 				{
-					ReportCreator rc = new ReportCreator(reportPlugin); 
+					ReportCreator rc = new ReportCreator(reportPlugin, sris); 
 					Future< ? > future = threadPool.submit(rc);
 					return (Future<ReportCreator>) future;
 				}
@@ -539,17 +553,20 @@ public class DisplayReportsSelector extends RmaJDialog
 			folder = sri.getSimFolder();
 			if ( !FileManagerImpl.getFileManager().fileExists(folder))
 			{
-				JOptionPane.showMessageDialog(_parent, "Simulation "+sri.getSimulation().getName()+" has no results so no report can be created for it.","No Results", JOptionPane.INFORMATION_MESSAGE);
+				final SimulationReportInfo fSri = sri;
+				EventQueue.invokeLater(()->JOptionPane.showMessageDialog(_parent, "Simulation "+fSri.getSimulation().getName()
+						+" has no results so no report can be created for it.","No Results", JOptionPane.INFORMATION_MESSAGE));
 				iter.remove();
 			}
 		}
 	
 		if ( sims.isEmpty())
 		{
-			JOptionPane.showMessageDialog(_parent,"There are no Simulations with results selected to create reports for",
-					"No Simulations Selected", JOptionPane.INFORMATION_MESSAGE);
+			EventQueue.invokeLater(()->JOptionPane.showMessageDialog(_parent,"There are no Simulations with results selected to create reports for",
+					"No Simulations Selected", JOptionPane.INFORMATION_MESSAGE));
 			return false;
 		}
+		fillForm(sims);
 		return true;
 	}
 	
@@ -567,11 +584,16 @@ public class DisplayReportsSelector extends RmaJDialog
 		{
 			Logger.getLogger(DisplayReportsSelector.class.getName()).info("Failed to clear node "+node.absolutePath()+" Error:"+e);
 		}
-		List<ReportPlugin> selectedReports = getSelectedReports();
-		for (int i = 0;i < selectedReports.size();i++ )
+		Map<ReportPlugin, List<SimulationReportInfo>> selectedReports = getSelectedReports();
+		Set<ReportPlugin> keys = selectedReports.keySet();
+		Iterator<ReportPlugin> iter = keys.iterator();
+		int i = 0;
+		while (iter.hasNext())
 		{
-			String pluginName =selectedReports.get(i).getName();
+			ReportPlugin plugin = iter.next();
+			String pluginName =plugin.getName();
 			node.put("SelectedReport"+i, pluginName);
+			i++;
 		}
 		OutputType ot = (OutputType)_outputTypeCombo.getSelectedItem();
 		node.put("ReportType", ot.name());
@@ -590,14 +612,17 @@ public class DisplayReportsSelector extends RmaJDialog
 
 		private ReportPlugin _reportPlugin;
 		private boolean _reportRv;
+		private List<SimulationReportInfo> _sris;
 
 		/**
 		 * @param reportPlugin
+		 * @param sris 
 		 */
-		public ReportCreator(ReportPlugin reportPlugin)
+		public ReportCreator(ReportPlugin reportPlugin, List<SimulationReportInfo> sris)
 		{
 			super();
 			_reportPlugin = reportPlugin;
+			_sris = sris;
 		}
 
 		@Override
@@ -609,7 +634,7 @@ public class DisplayReportsSelector extends RmaJDialog
 			options.setPrintHeadersFooters(_printHeaderFooterCheck.isSelected());
 			try
 			{
-				_reportRv = _reportPlugin.createReport(options);
+				_reportRv = _reportPlugin.createReport(_sris, options);
 			}
 			catch ( Exception e )
 			{
@@ -633,5 +658,129 @@ public class DisplayReportsSelector extends RmaJDialog
 			return _reportPlugin;
 		}
 
+	}
+	
+	public class CheckboxTree extends JTree
+	{
+		public CheckboxTree()
+		{
+			super();
+			setRootVisible(false);
+			setCellRenderer(new CheckBoxTreeRenderer());
+			addMouseListener(new NodeSelectionListener(this));
+			setToolTipText("");
+		}
+		
+		@Override
+		public String getToolTipText(MouseEvent e)
+		{
+			TreePath path = getPathForLocation(e.getX(), e.getY());
+			if ( path == null )
+			{
+				return null;
+			}
+			Object pathObj = path.getLastPathComponent();
+			if ( pathObj instanceof ReportObject )
+			{
+				ReportObject ro = (ReportObject) pathObj;
+				SimulationReportInfo sri = ro.getSimulationReportInfo();
+				return sri.getDescription();
+			}
+			else
+			{
+				SimulationReportInfo sri = (SimulationReportInfo) pathObj;
+				return sri.getDescription();
+			}
+		}
+		public void expandAll(boolean expand) 
+		{
+			TreeNode root = (TreeNode) this.getModel().getRoot();
+			expandAll(new TreePath(root), expand);
+		}
+
+		public void expandAll(TreePath parent, boolean expand) 
+		{
+			TreeNode node = (TreeNode) parent.getLastPathComponent();
+			if (node.getChildCount() >= 0) 
+			{
+				Enumeration e = node.children();
+
+				while (e.hasMoreElements()) 
+				{
+					TreeNode n = (TreeNode) e.nextElement();
+					TreePath path = parent.pathByAddingChild(n);
+					expandAll(path, expand);
+				}
+			}
+
+			if (expand) 
+			{
+				expandPath(parent);
+			} 
+			else 
+			{
+				collapsePath(parent);
+			}
+
+		}
+	}
+	
+	public class ReportObject implements LabelIconObject
+	{
+		private SimulationReportInfo _sri;
+		private ImageIcon _icon;
+
+		public ReportObject(SimulationReportInfo sri)
+		{
+			super();
+			_sri = sri;
+			if ( _sri.isSimulation() )
+			{
+				_icon = RmaImage.getImageIcon("Images/comp16x16.gif");
+			}
+			else
+			{
+				_icon = RmaImage.getImageIcon("Images/tabulate18.gif");
+			}
+		}
+		/**
+		 * @return
+		 */
+		public SimulationReportInfo getSimulationReportInfo()
+		{
+			return _sri;
+		}
+		@Override
+		public String getLabel()
+		{
+			return _sri.toString();
+		}
+
+		@Override
+		public Icon getIcon()
+		{
+			return _icon;
+		}
+	}
+	public class CheckBoxNode extends DefaultCheckBoxNode
+	{
+
+		/**
+		 * @param userObj
+		 * @param tree
+		 */
+		public CheckBoxNode(Object userObj, JTree tree)
+		{
+			super(userObj, tree);
+		}
+
+		@Override
+		public void setSelected(boolean selected)
+		{
+			updateCreateReportButtonState();
+			super.setSelected(selected);
+		}
+		
+		
 	}
 }
