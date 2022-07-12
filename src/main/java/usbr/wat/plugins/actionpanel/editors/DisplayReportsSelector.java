@@ -665,6 +665,7 @@ public class DisplayReportsSelector extends RmaJDialog
 		public CheckboxTree()
 		{
 			super();
+			setRowHeight(getRowHeight()+5);
 			setRootVisible(false);
 			setCellRenderer(new CheckBoxTreeRenderer());
 			addMouseListener(new NodeSelectionListener(this));
