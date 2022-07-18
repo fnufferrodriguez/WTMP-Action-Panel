@@ -29,7 +29,7 @@ import usbr.wat.plugins.actionpanel.gitIntegration.utils.GitRepoUtils;
  * @author mark
  *
  */
-public class RestoreStudyAction extends AbstractGitAction
+public class RestoreStudyAction extends AbstractStudyGitAction
 {
 	public static final String RESTORE_CMD = "--restore";
 	private RepoInfo _repo;
@@ -97,6 +97,14 @@ public class RestoreStudyAction extends AbstractGitAction
 				{
 					return false;
 				}
+				if ( !askToCloseStudy())
+				{
+					return false;
+				}
+				if ( !closeStudy())
+				{
+					return false;
+				}
 				List<String>modules = getSubModules();
 				if ( modules != null && modules.size() > 0 )
 				{
@@ -149,5 +157,11 @@ public class RestoreStudyAction extends AbstractGitAction
 		
 		_confirmDlg.setVisible(true);
 		return !_confirmDlg.isCanceled();
+	}
+
+	@Override
+	protected String getType()
+	{
+		return "Restoring";
 	}
 }

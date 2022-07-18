@@ -29,7 +29,7 @@ import usbr.wat.plugins.actionpanel.gitIntegration.utils.GitRepoUtils;
  *
  */
 @SuppressWarnings("serial")
-public class DownloadStudyAction extends AbstractGitAction
+public class DownloadStudyAction extends AbstractStudyGitAction
 {
 	public static final String DOWNLOAD_CMD = "--download";
 	public static final String CLONE_CMD = "--clone";
@@ -89,6 +89,7 @@ public class DownloadStudyAction extends AbstractGitAction
 		try
 		{
 			getParent().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));	
+			
 			List<String>cmd = new ArrayList<>();
 			String gitCmd = null;
 			String gitFolder = RMAIO.concatPath(_repo.getLocalPath(), GitRepoUtils.GIT_FOLDER);
@@ -96,6 +97,14 @@ public class DownloadStudyAction extends AbstractGitAction
 			{   // folder exists, so its a download.
 				gitCmd = DOWNLOAD_CMD;
 				if ( !showDownloadDialog())
+				{
+					return false;
+				}
+				if ( !askToCloseStudy())
+				{
+					return false;
+				}
+				if ( !closeStudy())
 				{
 					return false;
 				}
@@ -137,8 +146,10 @@ public class DownloadStudyAction extends AbstractGitAction
 		{
 
 			getParent().setCursor(Cursor.getDefaultCursor());
+			openStudy();
 		}
 	}
+	
 	
 	private List<String> getSubModules()
 	{
@@ -157,6 +168,12 @@ public class DownloadStudyAction extends AbstractGitAction
 		_confirmDlg = new DownloadConfirmDialog(getParent(), _repo);
 		_confirmDlg.setVisible(true);
 		return !_confirmDlg.isCanceled();
+	}
+	
+	@Override
+	public String getType()
+	{
+		return "Downloading";
 	}
 
 }
