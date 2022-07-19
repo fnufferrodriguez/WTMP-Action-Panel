@@ -529,6 +529,7 @@ public class ReposEditor extends RmaJDialog
 		{
 			_currentRepo.setLocalPath(_destFolderFld.getText());
 			_currentRepo.setSourceUrl(_srcUrlFld.getText());
+			GitRepoUtils.writeRepo(_currentRepo);
 			setModified(false);
 		}
 		_addRepoButton.setEnabled(true);
