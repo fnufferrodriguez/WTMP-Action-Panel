@@ -271,23 +271,19 @@ public class GitRepoUtils
 	/**
 	 * @param info
 	 */
-	private static boolean writeRepo(RepoInfo info)
+	public static boolean writeRepo(RepoInfo info)
 	{
 		Preferences reposNode = getRepoNode();	
 		String name = info.getName();
 		try
 		{
-			if ( !reposNode.nodeExists(name))
-			{
-				Preferences repoNode = reposNode.node(name);
-				repoNode.put(LOCAL_FOLDER, info.getLocalPath());
-				repoNode.put(REPO_URL, info.getSourceUrl());
-				return true;
-			}
+			Preferences repoNode = reposNode.node(name);
+			repoNode.put(LOCAL_FOLDER, info.getLocalPath());
+			repoNode.put(REPO_URL, info.getSourceUrl());
+			return true;
 		}
-		catch (BackingStoreException e)
+		catch (Exception e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -302,12 +298,10 @@ public class GitRepoUtils
 	{
 		try
 		{
-			//Collection<Ref> refs = Git.lsRemoteRepository().setRemote(remoteUrl).call();
 			return true;
 		}
 		catch (Exception e)
 		{
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return false;
 		}
