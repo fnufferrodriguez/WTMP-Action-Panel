@@ -7,6 +7,7 @@
  */
 package usbr.wat.plugins.actionpanel.editors;
 
+import java.awt.Cursor;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
@@ -199,6 +200,9 @@ public class NewSimulationGroupDialog extends RmaJDialog
 	 */
 	protected void saveForm()
 	{
+		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		try
+		{
 		if ( isValidData())
 		{
 			if ( _simGroup == null )
@@ -217,6 +221,11 @@ public class NewSimulationGroupDialog extends RmaJDialog
 					setVisible(false);
 				}
 			}
+		}
+		}
+		finally
+		{
+			setCursor(Cursor.getDefaultCursor());
 		}
 	}
 
