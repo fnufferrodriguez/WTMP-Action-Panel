@@ -99,6 +99,7 @@ public class ActionsWindow extends RmaJDialog
 	private SimulationActionsPanel _simActionsPanel;
 	private ProjectSimulationListener _projectSimulationListener;
 	private ActionsProjectTab _actionsProjTab;
+	private ProjectSimulationGroupListener _projectSimulationGroupListener;
 
 	public ActionsWindow(Frame parent)
 	{
@@ -618,6 +619,7 @@ public class ActionsWindow extends RmaJDialog
 		Project.addStaticManagerContainer(SimGroupContainerNode.class);  
 		
 		_projectSimulationListener = new ProjectSimulationListener();
+		_projectSimulationGroupListener = new ProjectSimulationGroupListener();
 		Project.addStaticProjectListener(new ProjectAdapter()
 		{
 			@Override
@@ -631,6 +633,7 @@ public class ActionsWindow extends RmaJDialog
 				if ( !prj.isNoProject())
 				{
 					prj.addManagerListener(_projectSimulationListener);
+					prj.addManagerListener(_projectSimulationGroupListener);
 				}
 				clearForm();
 				checkRepoOutofDateStatus();
@@ -639,6 +642,7 @@ public class ActionsWindow extends RmaJDialog
 			public void  projectClosed(ProjectEvent e ) 
 			{
 				e.getProject().removeManagerListener(_projectSimulationListener);
+				e.getProject().removeManagerListener(_projectSimulationGroupListener);
 			}
 		});
 		
@@ -953,7 +957,37 @@ public class ActionsWindow extends RmaJDialog
 		}
 		return "";
 	}
-	
+	public class ProjectSimulationGroupListener implements ProjectManagerListener
+	{
+		
+		public ProjectSimulationGroupListener()
+		{
+			super();
+		}
+		public void managerAdded(ManagerProxy proxy)
+		{
+			// do nothing
+		}
+		@Override
+		public Class<?> getManagerClass()
+		{
+			return SimulationGroup.class;
+		}
+		@Override
+		public void managerDeleted(ManagerProxy proxy)
+		{
+			if ( proxy == null )
+			{
+				return;
+			}
+			SimulationGroup simGroup = (SimulationGroup) proxy.getManager();
+			if ( proxy.getManager()==getSimulationGroup() )
+			{
+				setSimulationGroup(null);
+				new DeleteSimulationGroupAction(ActionsWindow.this).deleteSimulationGroup(simGroup);
+			}
+		}
+	}
 	public class ProjectSimulationListener implements ProjectManagerListener
 	{
 		public ProjectSimulationListener()
@@ -972,6 +1006,10 @@ public class ActionsWindow extends RmaJDialog
 		{
 			if ( proxy == null )
 			{
+				return;
+			}
+			if ( Project.getCurrentProject().getManager(proxy.getName(), proxy.getClassName()) == null )
+			{ // already deleted
 				return;
 			}
 			String name = proxy.getName();
