@@ -35,6 +35,7 @@ import javax.swing.tree.DefaultTreeModel;
 import rma.swing.ButtonCmdPanel;
 import rma.swing.ButtonCmdPanelListener;
 import rma.swing.RmaInsets;
+import rma.swing.RmaJCheckBox;
 import rma.swing.RmaJDialog;
 import rma.swing.RmaJList;
 import rma.swing.RmaJTextField;
@@ -64,6 +65,7 @@ public class DownloadConfirmDialog extends RmaJDialog
 	private CheckboxTree _submoduleTree;
 	private JScrollPane _treeScrollPane;
 	private boolean _isRestore;
+	private RmaJCheckBox _softoverwriteCheck;
 
 	/**
 	 * @param studyStorageDialog
@@ -271,6 +273,29 @@ public class DownloadConfirmDialog extends RmaJDialog
 		gbc.fill      = GridBagConstraints.NONE;
 		gbc.insets    = RmaInsets.INSETS5555;
 		getContentPane().add(label, gbc);
+	
+		JPanel bottomPanel = new JPanel(new GridBagLayout());
+		gbc.gridx     = GridBagConstraints.RELATIVE;
+		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridwidth = GridBagConstraints.REMAINDER;
+		gbc.weightx   = 1.0;
+		gbc.weighty   = 0.0;
+		gbc.anchor    = GridBagConstraints.SOUTHWEST;
+		gbc.fill      = GridBagConstraints.HORIZONTAL;
+		gbc.insets    = RmaInsets.INSETS5505;
+		getContentPane().add(bottomPanel, gbc);
+		
+		_softoverwriteCheck = new RmaJCheckBox("Soft OverWrite");
+		_softoverwriteCheck.setToolTipText("Don't overwrite unmodified uploaded files when you download");
+		gbc.gridx     = GridBagConstraints.RELATIVE;
+		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridwidth = 1;
+		gbc.weightx   = 0.0;
+		gbc.weighty   = 0.0;
+		gbc.anchor    = GridBagConstraints.NORTHWEST;
+		gbc.fill      = GridBagConstraints.NONE;
+		gbc.insets    = RmaInsets.INSETS5505;
+		bottomPanel.add(_softoverwriteCheck, gbc);
 		
 		
 		_cmdPanel = new ButtonCmdPanel(ButtonCmdPanel.OK_CANCEL_BUTTONS);
@@ -290,7 +315,7 @@ public class DownloadConfirmDialog extends RmaJDialog
 		gbc.anchor    = GridBagConstraints.SOUTHWEST;
 		gbc.fill      = GridBagConstraints.HORIZONTAL;
 		gbc.insets    = RmaInsets.INSETS5555;
-		getContentPane().add(_cmdPanel, gbc);
+		bottomPanel.add(_cmdPanel, gbc);
 		
 	}
 
@@ -377,6 +402,7 @@ public class DownloadConfirmDialog extends RmaJDialog
 		if ( visible )
 		{
 			fillForm();
+			setSize(600,600);
 		}
 		super.setVisible(visible);
 	}
@@ -525,6 +551,11 @@ public class DownloadConfirmDialog extends RmaJDialog
 	public List<String>getSelectedSubmodules()
 	{
 		return _submoduleTree.getCheckedSubmodules();
+	}
+	
+	public boolean shouldSoftOverWrite()
+	{
+		return _softoverwriteCheck.isSelected();
 	}
 
 }

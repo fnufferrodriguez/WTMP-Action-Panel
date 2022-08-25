@@ -124,4 +124,14 @@ public class RepoButtonPanel extends JPanel
 		_restoreStudyAction.setRepoInfo(repo);
 		setButtonsEnabled( repo != null );
 	}
+
+
+
+	/**
+	 * @param softoverwrite
+	 */
+	public void setSoftOverwriteOnDownload(boolean softoverwrite)
+	{
+		_downloadStudyAction.setSoftOverwriteOnDownLoad(softoverwrite);
+	}
 }
