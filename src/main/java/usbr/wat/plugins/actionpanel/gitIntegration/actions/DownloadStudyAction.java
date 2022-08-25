@@ -35,8 +35,11 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 	public static final String CLONE_CMD = "--clone";
 	
 	private static final String REMOTE = "--remote";
+	private static final String SOFTOVERWRITE = "--softoverwrite";
+	
 	private DownloadConfirmDialog _confirmDlg;
 	private RepoInfo _repo;
+	private boolean _softoverwrite;
 	
 	public DownloadStudyAction(StudyStorageDialog studyStorageDialog)
 	{
@@ -139,6 +142,10 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 				cmd.add(REMOTE);
 				cmd.add(quoteString(_repo.getSourceUrl()));
 			}
+			else if ( _softoverwrite )
+			{
+				cmd.add(SOFTOVERWRITE);
+			}
 
 			return callGit(cmd);
 		}
@@ -167,6 +174,7 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 	{
 		_confirmDlg = new DownloadConfirmDialog(getParent(), _repo);
 		_confirmDlg.setVisible(true);
+		_softoverwrite = _confirmDlg.shouldSoftOverWrite();
 		return !_confirmDlg.isCanceled();
 	}
 	
@@ -174,6 +182,14 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 	public String getType()
 	{
 		return "Downloading";
+	}
+
+	/**
+	 * @param softoverwrite
+	 */
+	public void setSoftOverwriteOnDownLoad(boolean softoverwrite)
+	{
+		_softoverwrite = softoverwrite;
 	}
 
 }
