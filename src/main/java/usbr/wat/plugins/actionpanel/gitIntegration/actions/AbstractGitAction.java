@@ -148,7 +148,10 @@ public abstract class AbstractGitAction extends AbstractAction
 		try
 		{
 			int rv = proc.waitFor();
-			_logger.fine(cmd.get(0)+" exit code="+rv);
+			if ( echoOutput)
+			{
+				System.out.println(cmd.get(0)+" exit code="+rv);
+			}
 			if ( rv != 0 )
 			{
 				showErrorMsg(cmd, _output);
