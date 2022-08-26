@@ -34,6 +34,7 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 	public static final String DOWNLOAD_CMD = "--download";
 	public static final String CLONE_CMD = "--clone";
 	
+	private static final String OK_TO_PULL = "--okToPull";
 	private static final String REMOTE = "--remote";
 	private static final String SOFTOVERWRITE = "--softoverwrite";
 	
@@ -98,7 +99,9 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 			String gitFolder = RMAIO.concatPath(_repo.getLocalPath(), GitRepoUtils.GIT_FOLDER);
 			if ( FileManagerImpl.getFileManager().fileExists(gitFolder))
 			{   // folder exists, so its a download.
-				gitCmd = DOWNLOAD_CMD;
+				cmd.add(FetchAction.FETCH_CMD);
+				cmd.add(OK_TO_PULL);
+				cmd.add(DOWNLOAD_CMD);
 				if ( !showDownloadDialog())
 				{
 					return false;
@@ -132,9 +135,8 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 			}
 			else
 			{ // no folder so its a clone
-				gitCmd = CLONE_CMD;
+				cmd.add(CLONE_CMD);
 			}
-			cmd.add(gitCmd);
 			cmd.add(LOCAL_FOLDER);
 			cmd.add(_repo.getLocalPath());
 			if ( CLONE_CMD.equals(gitCmd))
@@ -146,8 +148,13 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 			{
 				cmd.add(SOFTOVERWRITE);
 			}
-
-			return callGit(cmd);
+			setShowFailedCallMessage(true);
+			boolean rv = callGit(cmd);
+			if (rv)
+			{
+				return rv;
+			}
+			return downloadStudyAction();
 		}
 		finally
 		{
