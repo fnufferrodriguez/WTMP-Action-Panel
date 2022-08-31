@@ -7,22 +7,28 @@
  */
 package usbr.wat.plugins.actionpanel;
 
+import java.awt.EventQueue;
+
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeNode;
 
 import com.rma.client.Browser;
+import com.rma.event.ProjectAdapter;
 import com.rma.event.ProjectManagerListener;
 import com.rma.factories.ProjectNodeFactory;
 import com.rma.model.ManagerProxy;
 import com.rma.model.Project;
 import com.rma.ui.AbstractContainerNode;
 import com.rma.ui.IconNode;
+import com.rma.ui.ProjectTree;
 
 import rma.swing.RmaImage;
 import usbr.wat.plugins.actionpanel.model.SimulationGroup;
+import usbr.wat.plugins.actionpanel.ui.ActionsProjectTab;
 import usbr.wat.plugins.actionpanel.ui.SimulationGroupNode;
+import usbr.wat.plugins.actionpanel.ui.WtmpTreeNode;
 
 /**
  * @author mark
@@ -37,6 +43,7 @@ public class SimGroupContainerNode extends AbstractContainerNode
 	{
 		_folderIcon = RmaImage.getImageIcon("Images/simGroupContainer.png");
 	}
+	private ProjectAdapter _projectListener;
 	public SimGroupContainerNode()
 	{
 		super("Simulation Groups");
@@ -52,8 +59,10 @@ public class SimGroupContainerNode extends AbstractContainerNode
 		{
 
 			@Override
-			public void managerAdded(ManagerProxy mgr)
+			public void managerAdded(ManagerProxy proxy)
 			{
+				addSimulationGroup(proxy);
+				
 			}
 
 			@Override
@@ -77,9 +86,40 @@ public class SimGroupContainerNode extends AbstractContainerNode
 		});
 	}
 	/**
+	 * @param proxy
+	 */
+	public boolean addSimulationGroup(ManagerProxy proxy)
+	{
+		MutableTreeNode node = findNodeForManager(proxy);
+		if ( node == null )
+		{
+			MutableTreeNode mgrNode = ProjectNodeFactory.getProjectNode(proxy, this);
+			add(mgrNode);
+			ProjectTree tree = getTree();
+			EventQueue.invokeLater(()->tree.nodesWereInserted(this, new TreeNode[] {node}));
+			return true;
+		}
+		return false;
+	}
+	/**
+	 * @return
+	 */
+	private ProjectTree getTree()
+	{
+		if ( getParent() instanceof WtmpTreeNode )
+		{
+			return ActionsProjectTab.getTab().getProjectTree();
+		}
+		return Browser.getBrowserFrame().getProjectTree();
+	}
+	/**
 	 * 
 	 */
 	private void addNoGroupNode()
+	{
+		addNoGroupNode(Project.getCurrentProject());
+	}
+	private void addNoGroupNode(Project prj)
 	{
 		SimulationGroup  simGroup = new SimulationGroup()
 		{
@@ -102,13 +142,14 @@ public class SimGroupContainerNode extends AbstractContainerNode
 		simGroup.setName("Not in a Group");
 		simGroup.setIsTransitory(true);
 		simGroup.setIgnoreModifiedEvents(true);
-		Project.getCurrentProject().addManager(simGroup);
+		prj.addManager(simGroup);
 		MutableTreeNode node = ProjectNodeFactory.getProjectNode(simGroup, this);
 		
 		if ( node instanceof SimulationGroupNode )
 		{
 			SimulationGroupNode sgNode = (SimulationGroupNode) node;
 			sgNode.setAddSimsNotInGroup();
+			sgNode.setShowCount(true);
 			sgNode.setManagerProxy(Project.getCurrentProject().getManagerProxy(simGroup));
 			add(node);
 		}
@@ -128,6 +169,22 @@ public class SimGroupContainerNode extends AbstractContainerNode
 	public Icon getIcon()
 	{
 		return _folderIcon;
+	}
+	/**
+	 * @param simGrp
+	 */
+	public boolean checkAndAddSimGroup(SimulationGroup simGrp)
+	{
+		if ( simGrp == null )
+		{
+			return false;
+		}
+		ManagerProxy proxy = Project.getCurrentProject().getManagerProxy(simGrp);
+		if ( proxy != null )
+		{
+			return addSimulationGroup(proxy);
+		}
+		return false;
 	}
 
 }

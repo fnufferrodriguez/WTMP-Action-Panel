@@ -645,6 +645,7 @@ public class ActionsWindow extends RmaJDialog
 			@Override
 			public void  projectClosed(ProjectEvent e ) 
 			{
+				clearForm();
 				e.getProject().removeManagerListener(_projectSimulationListener);
 				e.getProject().removeManagerListener(_projectSimulationGroupListener);
 			}

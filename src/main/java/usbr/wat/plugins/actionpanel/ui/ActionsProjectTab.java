@@ -7,11 +7,16 @@
  */
 package usbr.wat.plugins.actionpanel.ui;
 
+import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 
 import javax.swing.JButton;
-import javax.swing.JPanel;
+
+import com.rma.event.ProjectEvent;
+import com.rma.model.Project;
+import com.rma.ui.ContentTree;
+import com.rma.ui.ProjectTab;
+import com.rma.ui.ProjectTree;
 
 import rma.swing.RmaInsets;
 import usbr.wat.plugins.actionpanel.actions.ActionWindowAction;
@@ -20,41 +25,55 @@ import usbr.wat.plugins.actionpanel.actions.ActionWindowAction;
  * @author mark
  *
  */
-public class ActionsProjectTab extends JPanel
+@SuppressWarnings("serial")
+public class ActionsProjectTab extends ProjectTab
 {
+	private static ActionsProjectTab _instance;
 	public ActionsProjectTab()
 	{
-		super(new GridBagLayout());
-		buildControls();
-		addListener();
+		super();
+		_instance = this;
+	}
+	@Override
+	protected ProjectTree createProjectTree(ContentTree contentTree)
+	{
+		return new WtmpTree(contentTree);
+	}
+
+	public void projectOpened(ProjectEvent evt)
+	{
+		Project proj = evt.getProject();
+		EventQueue.invokeLater(()->getProjectTree().expandAll());
 	}
 
 	/**
 	 * 
 	 */
-	private void buildControls()
+	@Override
+	protected void buildControls()
 	{
+		super.buildControls();
+		
 		ActionWindowAction action = new ActionWindowAction();
 		GridBagConstraints gbc = new GridBagConstraints();
-		gbc.gridx     = GridBagConstraints.RELATIVE;
-		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridx     = 0;
+		gbc.gridy     = 10;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
 		gbc.weightx   = 1.0;
-		gbc.weighty   = 0.001;
+		gbc.weighty   = 0.0;
 		gbc.anchor    = GridBagConstraints.SOUTH;
 		gbc.fill      = GridBagConstraints.NONE;
-		gbc.insets    = RmaInsets.INSETS5505;
+		gbc.insets    = RmaInsets.INSETS5555;
 		add(new JButton(action), gbc);
 	}
 
+	
 	/**
-	 * 
+	 * @return
 	 */
-	private void addListener()
+	public static ActionsProjectTab getTab()
 	{
-		// TODO Auto-generated method stub
-		System.out.println("addListener TODO implement me");
-		
+		return _instance;
 	}
 	
 }

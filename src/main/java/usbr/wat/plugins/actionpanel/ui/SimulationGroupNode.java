@@ -42,6 +42,7 @@ import hec2.wat.ui.WatSimulationNode;
 import hec2.wat.util.WatI18n;
 
 import rma.swing.RmaImage;
+import usbr.wat.plugins.actionpanel.SimGroupContainerNode;
 import usbr.wat.plugins.actionpanel.model.SimulationGroup;
 
 /**
@@ -57,7 +58,8 @@ public class SimulationGroupNode extends ManagerNode
 	static
 	{
 		_folderIcon = RmaImage.getImageIcon("Images/compMulti16x16.gif");
-	}	
+	}
+	private boolean _showCnt;	
 	
 	public SimulationGroupNode()
 	{
@@ -122,6 +124,7 @@ public class SimulationGroupNode extends ManagerNode
 	}
 	private void addSimulations(List<WatSimulation>sims)
 	{
+		removeAllChildren();
 		WatSimulation sim;
 		for (int i = 0;i < sims.size(); i++ )
 		{ 
@@ -150,6 +153,29 @@ public class SimulationGroupNode extends ManagerNode
 	{
 		List contentNodes = new ArrayList<>();
 		SimulationGroup simGroup = (SimulationGroup) getManager();
+		if ( simGroup.isTransitory() )
+		{
+			int cnt = getChildCount();
+			WatSimulation sim;
+			TreeNode node;
+			WatSimulationNode simNode;
+			for (int i = 0;i < cnt; i++ )
+			{
+				node = getChildAt(i);
+				if ( node instanceof WatSimulationNode )
+				{
+					simNode = (WatSimulationNode) node;
+					sim = simNode.getSimulation();
+					node = ProjectNodeFactory.getProjectNode(sim, this);
+					if ( node instanceof WatSimulationNode )
+					{
+						simNode = (WatSimulationNode) node;
+						simNode.setManagerProxy(Project.getCurrentProject().getManagerProxy(sim));
+						contentNodes.add(node);
+					}
+				}	
+			}
+		}
 		WatAnalysisPeriod ap = simGroup.getAnalysisPeriod();
 		ManagerProxy apProxy = Project.getCurrentProject().getManagerProxy(ap);
 		if ( apProxy != null )
@@ -235,27 +261,54 @@ public class SimulationGroupNode extends ManagerNode
 	{
 		addNotInGroupManagerListener();
 		
-		addSimsNotInGroup();
+		EventQueue.invokeLater(()->addSimsNotInGroup());
 	}
 	private void addSimsNotInGroup()
 	{
+		if ( Project.getCurrentProject().isNoProject())
+		{
+			return;
+		}
 		List<WatSimulation> allSims = Project.getCurrentProject().getManagerListForType(WatSimulation.class);
-		int cnt = getParent().getChildCount();
+		List<SimulationGroup> simGroups = Project.getCurrentProject().getManagerListForType(SimulationGroup.class);
+		int cnt = simGroups.size();
 		SimulationGroupNode sgNode;
 		List<WatSimulation> sgSims;
-		
-		for (int i = 1; i < cnt; i++ ) // first child should be this
+		TreeNode parentNode = getParent();
+		SimGroupContainerNode  containerParent = null;
+		if ( parentNode instanceof SimGroupContainerNode )
 		{
-			TreeNode node = getParent().getChildAt(i);
-			if ( node instanceof SimulationGroupNode )
+			containerParent = (SimGroupContainerNode) parentNode;
+		}
+		SimulationGroup simGrp;
+		boolean addedNodes = false;
+		for (int i = 0; i < cnt; i++ ) // first child should be this
+		{
+			simGrp = simGroups.get(i);
+			if ( simGrp == getSimulationGroup())
 			{
-				sgNode = (SimulationGroupNode) node;
-				sgSims = sgNode.getSimulations();
-				allSims.removeAll(sgSims);
+				continue;
 			}
+			if ( containerParent != null )
+			{
+				if ( containerParent.checkAndAddSimGroup(simGrp))
+				{
+					addedNodes = true;
+				}
+			}
+			sgSims = simGrp.getSimulations();
+			allSims.removeAll(sgSims);
 		}
 		addSimulations(allSims);
 		
+	}
+	
+	/**
+	 * @return
+	 */
+	private SimulationGroup getSimulationGroup()
+	{
+		return (SimulationGroup) getManager();
 	}
 	/**
 	 * 
@@ -342,6 +395,24 @@ public class SimulationGroupNode extends ManagerNode
 			}
 		}
 		return null;
+	}
+	/**
+	 * @param b
+	 */
+	public void setShowCount(boolean showCount)
+	{
+		_showCnt = showCount;
+	}
+	
+	
+	@Override
+	public String toString()
+	{
+		if ( _showCnt )
+		{
+			return super.toString()+" ("+getChildCount()+")";
+		}
+		return super.toString();
 	}
 	
 

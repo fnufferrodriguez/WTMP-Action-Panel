@@ -203,6 +203,7 @@ public class ActionsPanel extends JPanel
 			{
 				_newSimGroupAction.setEnabled(false);
 				_selectSimGroupAction.setEnabled(false);
+				setSimulationGroup(null);
 				enableActions(false);
 			}
 
