@@ -361,19 +361,32 @@ public class IterationBcPanel extends AbstractEditorPanel
 			Vector row;
 			DataLocation dl, dl2;
 			DSSIdentifier dssId;
-			DssDataLocation linkedToDl;
+			DataLocation linkedToDl;
+			String dssFile;
 			for (int i = 0; i< dataLocs.size();i++ )
 			{
 				 dl = dataLocs.get(i);
-				 dl2 = dl.getLinkedToLocation();
-				 if (  dl2 instanceof DssDataLocation )
+				 if ( !dl.getClass().equals(DataLocation.class))
 				 {
-					 linkedToDl = (DssDataLocation) dl2;
+					 continue;
+				 }
+				 dl2 = dl.getLinkedToLocation();
+				 if (  dl2 instanceof DataLocation )
+				 {
+					 linkedToDl = dl2;
 					 row = new Vector(5);
 					 row.add(i+1);
 					 row.add(dl);
 					 row.add(dl.getParameter());
-					 dssId = new DSSIdentifier(linkedToDl.get_dssFile(), linkedToDl.getDssPath());
+					 if ( linkedToDl instanceof DssDataLocation )
+					 {
+						 dssFile = ((DssDataLocation)linkedToDl).get_dssFile();
+					 }
+					 else
+					 {
+						 dssFile = "";
+					 }
+					 dssId = new DSSIdentifier(dssFile, linkedToDl.getDssPath());
 					 row.add(dssId);
 					 dssId = _modelAltSettings.getDSSIdentifierFor(dl);
 					 if ( dssId == null )
