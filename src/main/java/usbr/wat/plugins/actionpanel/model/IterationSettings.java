@@ -15,7 +15,6 @@ import org.jdom.Element;
 import com.rma.util.XMLUtilities;
 
 import hec2.model.DataLocation;
-import hec2.model.DssDataLocation;
 import hec2.plugin.model.ModelAlternative;
 import hec2.wat.plugin.SimpleWatPlugin;
 import hec2.wat.plugin.WatPlugin;
@@ -109,6 +108,7 @@ public class IterationSettings
 		// find deleted DataLocations
 		savedDataLocsSet.removeAll(pluginDataLocs);
 		savedDataLocs.removeAll(savedDataLocsSet);
+		mAltSettings.updateDataLocations(savedDataLocs);
 		
 		
 	}
@@ -187,7 +187,11 @@ public class IterationSettings
 		for (int i = 0; i < dataLocs.size();i++  )
 		{
 			dataLoc = dataLocs.get(i);
-			if ( dataLoc.getLinkedToLocation() instanceof DssDataLocation )
+			if ( !dataLoc.getClass().equals(DataLocation.class))
+			{
+				continue;
+			}
+			if ( dataLoc.getLinkedToLocation() instanceof DataLocation )
 			{
 				dssDataLocs.add(dataLoc);
 			}

@@ -172,5 +172,26 @@ public class ModelAltIterationSettings extends NamedType
 			dl.setModelAlternative(modelAlt);
 		}
 	}
+	/**
+	 * @param savedDataLocs
+	 */
+	public void updateDataLocations(List<DataLocation> dataLocs)
+	{
+		HashMap<DataLocation, DSSIdentifier>currentSettings = new HashMap<>(_dataLocationSettings);
+		_dataLocationSettings.clear();
+		DataLocation dl;
+		DSSIdentifier dssId;
+		for (int i = 0;i < dataLocs.size();i++ )
+		{
+			dl = dataLocs.get(i);
+			dssId = currentSettings.get(dl);
+			if (dssId == null )
+			{
+				dssId = new DSSIdentifier("","");
+			}
+			_dataLocationSettings.put(dl, dssId);
+		}
+		
+	}
 	
 }
