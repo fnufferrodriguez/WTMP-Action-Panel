@@ -1146,19 +1146,21 @@ public class ActionComputable
 		String dssPath, fileName;
 		DssDataLocation dssDl;
 		boolean copySuccessful = true;
-		
-		RunTimeWindow rtw = _sim.getRunTimeWindow();
-		HecTime startTime = (HecTime) rtw.getStartTime().clone();
-		HecTime endTime = (HecTime) rtw.getEndTime().clone();
-		
-		int startDaysToSubtract = -Integer.getInteger("Iteration.StartDaysToSubtract", 0);	
-		startTime.addDays(startDaysToSubtract);
-		srcDssId.setStartTime(startTime);
-		
-		
-		int endDaysToAdd = -Integer.getInteger("Iteration.EndDaysToAdd", 0);	
-		endTime.addDays(endDaysToAdd);
-		srcDssId.setEndTime(endTime);
+		if (Boolean.getBoolean("Iteration.OnlyCopyTimeWindow"))
+		{
+			RunTimeWindow rtw = _sim.getRunTimeWindow();
+			HecTime startTime = (HecTime) rtw.getStartTime().clone();
+			HecTime endTime = (HecTime) rtw.getEndTime().clone();
+
+			int startDaysToSubtract = -Integer.getInteger("Iteration.StartDaysToSubtract", 0);	
+			startTime.addDays(startDaysToSubtract);
+			srcDssId.setStartTime(startTime);
+
+
+			int endDaysToAdd = -Integer.getInteger("Iteration.EndDaysToAdd", 0);	
+			endTime.addDays(endDaysToAdd);
+			srcDssId.setEndTime(endTime);
+		}
 		
 		_sim.addComputeMessage("Copying over iterative DSS records...");
 		for (int i = 0;i < modelAlts.size() && !_canceled;i ++ )
