@@ -27,6 +27,7 @@ public class ActionPanelPlugin
 	public ActionPanelPlugin()
 	{
 		super();
+		_instance = this;
 		addToToolsMenu();
 		EventQueue.invokeLater(()->displayActionsWindow());
 	}
@@ -65,7 +66,7 @@ public class ActionPanelPlugin
 
 	public static void main(String[] args)
 	{
-		_instance = new ActionPanelPlugin();
+		new ActionPanelPlugin();
 		
 	}
 	

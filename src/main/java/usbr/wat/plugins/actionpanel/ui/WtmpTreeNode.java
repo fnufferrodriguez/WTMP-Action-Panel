@@ -9,14 +9,10 @@ package usbr.wat.plugins.actionpanel.ui;
 
 import javax.swing.tree.MutableTreeNode;
 
-import com.rma.client.Browser;
-import com.rma.client.BrowserFrame;
 import com.rma.model.ManagerProxy;
 import com.rma.model.Project;
 import com.rma.ui.ProjectTree;
 import com.rma.ui.ProjectTreeNode;
-
-import hec2.wat.client.WatFrame;
 
 import usbr.wat.plugins.actionpanel.SimGroupContainerNode;
 
@@ -27,13 +23,16 @@ import usbr.wat.plugins.actionpanel.SimGroupContainerNode;
 @SuppressWarnings("serial")
 public class WtmpTreeNode extends ProjectTreeNode
 {
+	private WtmpTree _tree;
 	/**
 	 * @param currentProject
+	 * @param projectTreeModel 
 	 * @param object
 	 */
-	public WtmpTreeNode(Project currentProject, MutableTreeNode parent)
+	public WtmpTreeNode(Project currentProject, MutableTreeNode parent, WtmpTree tree)
 	{
 		super(currentProject, parent);
+		_tree =  tree;
 	}
 	@Override
 	public void buildTree()
@@ -53,12 +52,7 @@ public class WtmpTreeNode extends ProjectTreeNode
 	@Override
 	protected ProjectTree getProjectTree()
 	{
-		BrowserFrame browserFrame = Browser.getBrowserFrame();
-		if ( browserFrame != null )
-		{
-			return ((WatFrame)browserFrame).getSchematicTree();
-		}
-		return null;
+		return _tree;
 	}
 	@Override
 	public void managerAdded(ManagerProxy proxy)

@@ -17,6 +17,7 @@ import com.rma.model.Project;
 import com.rma.ui.ContentTree;
 import com.rma.ui.ProjectTab;
 import com.rma.ui.ProjectTree;
+import com.rma.ui.ProjectTreeModel;
 
 import rma.swing.RmaInsets;
 import usbr.wat.plugins.actionpanel.actions.ActionWindowAction;
@@ -29,6 +30,7 @@ import usbr.wat.plugins.actionpanel.actions.ActionWindowAction;
 public class ActionsProjectTab extends ProjectTab
 {
 	private static ActionsProjectTab _instance;
+	private WtmpTree _wtmpTree;
 	public ActionsProjectTab()
 	{
 		super();
@@ -37,12 +39,14 @@ public class ActionsProjectTab extends ProjectTab
 	@Override
 	protected ProjectTree createProjectTree(ContentTree contentTree)
 	{
-		return new WtmpTree(contentTree);
+		_wtmpTree = new WtmpTree(contentTree);
+		return _wtmpTree;
 	}
 
 	public void projectOpened(ProjectEvent evt)
 	{
 		Project proj = evt.getProject();
+		((ProjectTreeModel)getProjectTree().getModel()).setRoot(new WtmpTreeNode(proj, null, _wtmpTree));
 		EventQueue.invokeLater(()->getProjectTree().expandAll());
 	}
 
@@ -66,7 +70,11 @@ public class ActionsProjectTab extends ProjectTab
 		gbc.insets    = RmaInsets.INSETS5555;
 		add(new JButton(action), gbc);
 	}
-
+	public void projectClosed(ProjectEvent evt)
+	{
+		Project proj = Project.getNoProject();
+		((ProjectTreeModel)getProjectTree().getModel()).setRoot(new WtmpTreeNode(proj, null, _wtmpTree));
+	}
 	
 	/**
 	 * @return
@@ -75,5 +83,6 @@ public class ActionsProjectTab extends ProjectTab
 	{
 		return _instance;
 	}
+	
 	
 }
