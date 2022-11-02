@@ -387,6 +387,11 @@ public class ActionsWindow extends RmaJDialog
 		Browser.getBrowserFrame().getTabbedPane().insertTab("WTMP", null, _actionsProjTab, "WTMP Tab", 1);
 		
 	}
+	
+	public ActionsProjectTab getProjectTab()
+	{
+		return _actionsProjTab;
+	}
 
 
 	/**

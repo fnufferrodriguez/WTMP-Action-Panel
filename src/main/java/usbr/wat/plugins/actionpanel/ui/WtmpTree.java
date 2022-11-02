@@ -9,6 +9,7 @@ package usbr.wat.plugins.actionpanel.ui;
 
 import java.awt.EventQueue;
 
+import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeNode;
 
@@ -48,7 +49,7 @@ public class WtmpTree extends ProjectTree
 	@Override
 	protected ProjectTreeNode createRootNode()
 	{
-		return new WtmpTreeNode(Project.getCurrentProject() ,null);
+		return new WtmpTreeNode(Project.getCurrentProject() ,null, this);
 	}
 	
 	@Override
@@ -60,12 +61,37 @@ public class WtmpTree extends ProjectTree
 			protected ProjectTreeNode createProjectTreeNode(Project proj, 
 					MutableTreeNode node)
 			{
-				return new WtmpTreeNode(Project.getCurrentProject() ,null);
+				return new WtmpTreeNode(Project.getCurrentProject() ,null, WtmpTree.this);
+			}
+			@Override
+			public void projectOpened(ProjectEvent evt)
+			{
+				ProjectTreeNode newProject = createProjectTreeNode(evt.getProject(), null);
+				DefaultMutableTreeNode root = (DefaultMutableTreeNode) getRoot();
+				Object obj = root.getChildAt(0);
+				boolean noProjectRemoved = false;
+				if ( obj instanceof ProjectTreeNode )
+				{
+					root.removeAllChildren();
+					noProjectRemoved = true;
+				}
+				root.add(newProject);
+				if ( noProjectRemoved )
+				{
+					nodeStructureChanged(root);
+				}
+				else
+				{
+					int[] indices = new int[] {root.getIndex(newProject)};
+					
+					nodesWereInserted(root,indices);
+				}
 			}
 		};
 		_model = model;
 		return model;
 	
 	}
+	
 	
 }
