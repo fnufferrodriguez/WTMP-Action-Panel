@@ -844,7 +844,7 @@ public class ActionComputable
 			String dssPath = dssDl.getDssPath();
 			String dssFile = dssDl.get_dssFile();
 			String dssFileAbs = Project.getCurrentProject().getAbsolutePath(dssFile);
-			fillInSrcAndDestList(dssFileAbs, dssPath, srcList, destList);
+			fillInSrcAndDestList(dssFileAbs, dssPath, srcList, destList, true);
 			_sim.addComputeMessage("Found "+srcList+" records for "+dssPath);
 
 			int rv = DssFileManagerImpl.getDssFileManager().renameRecords(dssFileAbs, srcList, destList);
@@ -868,7 +868,7 @@ public class ActionComputable
 	 * @param destList
 	 */
 	private static void fillInSrcAndDestList(String dssFile, String dssPath,
-			List<String> srcList, List<String> destList)
+			List<String> srcList, List<String> destList, boolean addSaveSuffix)
 	{
 		List<String> paths = findPathnamesFor(dssFile, dssPath);
 		srcList.addAll(paths);
@@ -879,7 +879,17 @@ public class ActionComputable
 		{
 			pathname.setPathname(srcList.get(i));
 			String fpart = pathname.getFPart();
-			fpart = fpart.concat(SAVE_SUFFEX);
+			if ( addSaveSuffix )
+			{
+				fpart = fpart.concat(SAVE_SUFFEX);
+			}
+			else
+			{
+				if ( fpart.toLowerCase().endsWith(SAVE_SUFFEX))
+				{
+					fpart = fpart.toLowerCase().replace(SAVE_SUFFEX, "");
+				}
+			}
 			pathname.setFPart(fpart);
 		
 		
@@ -1248,25 +1258,52 @@ public class ActionComputable
 		Vector<String> destList= new Vector<>();
 		DSSIdentifier dssId;
 		String path, dssFile;
+		Vector<String>singleSrcList = new Vector();
+		Vector<String>singleDestList = new Vector();
+		DSSPathname pathname  = new DSSPathname();
 		for (int i = 0;i < savedDssPaths.size();i ++ )
 		{
-			dssId = savedDssPaths.get(i);
-			_sim.addComputeMessage(" model  Restoring DSS path for "+dssId);
-			path = dssId.getDSSPath();
-			dssFile = dssId.getFileName();
-			fillInSrcAndDestList(dssFile, path, destList, srcList);
-			int rv = DssFileManagerImpl.getDssFileManager().delete(dssFile, destList);
-			if ( rv != 0 )
-			{
-				_sim.addWarningMessage("Failed to delete DSS records for "+dssId);
-			}
+			srcList.clear();
+			destList.clear();
 			
-			_sim.addComputeMessage("Restoring "+srcList+" to "+destList);
-			rv = DssFileManagerImpl.getDssFileManager().renameRecords(dssFile, srcList, destList);
-			if ( rv != srcList.size() )
+			dssId = savedDssPaths.get(i);
+			_sim.addComputeMessage("Restoring DSS path for "+dssId);
+			path = dssId.getDSSPath();
+			pathname.setPathname(path);
+			String fpart = pathname.getFPart();
+			fpart = fpart.concat(SAVE_SUFFEX);
+			pathname.setFPart(fpart);
+			path = pathname.getPathname();
+			
+			dssFile = dssId.getFileName();
+			
+			fillInSrcAndDestList(dssFile, path, srcList, destList, false);
+			if ( destList.size() != srcList.size() )
 			{
-				_sim.addWarningMessage("Failed to restore DSS records for "+dssId);
-				_sim.addWarningMessage("Expected " + srcList.size()+" records to be restored. Restored "+rv+" Records.");
+				_sim.addWarningMessage("Mismatched source and dest lists for "+dssId);
+				_sim.addWarningMessage("Source List="+srcList);
+				_sim.addWarningMessage("Dest List="+destList);
+			}
+			int size = Math.min(srcList.size(), destList.size());
+			for (int s = 0;s < size; s++ )
+			{
+				singleSrcList.clear();
+				singleDestList.clear();
+				singleSrcList.add(srcList.get(s));
+				singleDestList.add(destList.get(s));
+				int rv = DssFileManagerImpl.getDssFileManager().delete(dssFile, singleDestList);
+				if ( rv != 0 )
+				{
+					_sim.addWarningMessage("Failed to delete DSS records for "+dssFile+":"+singleDestList.get(0));
+				}
+
+				_sim.addComputeMessage("Restoring "+singleSrcList+" to "+singleDestList);
+				rv = DssFileManagerImpl.getDssFileManager().renameRecords(dssFile, singleSrcList, singleDestList);
+				if ( rv != singleSrcList.size() )
+				{
+					_sim.addWarningMessage("Failed to restore DSS records for "+dssFile+":"+singleDestList.get(0));
+					_sim.addWarningMessage("Expected " + singleSrcList.size()+" records to be restored. Restored "+rv+" Records.");
+				}
 			}
 		}
 	}

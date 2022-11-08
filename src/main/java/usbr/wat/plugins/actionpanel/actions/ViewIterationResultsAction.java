@@ -58,7 +58,7 @@ public class ViewIterationResultsAction extends AbstractAction
 		List<WatSimulation>sims = _parent.getSelectedSimulations();
 		
 		ListSelection dssVue = new ListSelection("Compute Results",
-                ListSelection.FULL_FUNCTION, false, false);
+                ListSelection.FULL_FUNCTION, true, false, false);
 		WatSimulation sim;
 		String simDssFile, computeDssFile;
 		
