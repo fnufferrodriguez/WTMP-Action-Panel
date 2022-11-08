@@ -227,7 +227,10 @@ public class IterationBcPanel extends AbstractEditorPanel
 			origDssId = new DSSIdentifier(Project.getCurrentProject().getAbsolutePath(origDssId.getFileName()), origDssId.getDSSPath());
 			origTs = DssFileManagerImpl.getDssFileManager().readTS(origDssId, true);
 			Vector data = new Vector();
-			data.add(origTs);
+			if ( origTs.numberValues > 0 )
+			{
+				data.add(origTs);
+			}
 			if ( iterDssId.getDSSPath() != null && !iterDssId.getDSSPath().isEmpty())
 			{
 				DSSIdentifier dss2 = new DSSIdentifier(Project.getCurrentProject().getAbsolutePath(iterDssId.getFileName()), iterDssId.getDSSPath());
