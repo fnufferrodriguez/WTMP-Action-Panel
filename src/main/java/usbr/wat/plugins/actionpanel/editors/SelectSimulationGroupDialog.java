@@ -14,6 +14,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.Vector;
+import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -518,7 +519,18 @@ public class SelectSimulationGroupDialog extends RmaJDialog
 		
 		Project proj = Project.getCurrentProject();
 		List<SimulationGroup> simGroups = proj.getManagerListForType(SimulationGroup.class);
-		RMASort.quickSort(simGroups);
+		try
+		{
+			RMASort.quickSort(simGroups);
+		}
+		catch (Exception e)
+		{
+			Logger.getLogger(getClass().getName()).info("Exception sorting SimGroups " + e);
+			for (int i = 0;i < simGroups.size(); i++ )
+			{
+				Logger.getLogger(getClass().getName()).info("Simulation " + i+" is" + simGroups.get(i));
+			}
+		}
 		SimulationGroup sg;
 		Vector<Object> row;
 		WatAnalysisPeriod ap;
