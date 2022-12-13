@@ -26,6 +26,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreePath;
 
@@ -38,7 +39,10 @@ import org.jdesktop.swingx.decorator.Highlighter;
 import org.jdesktop.swingx.treetable.TreeTableModel;
 import org.jdesktop.swingx.treetable.TreeTableNode;
 
+import com.rma.client.Browser;
+
 import hec2.wat.model.WatSimulation;
+import hec2.wat.ui.WatSimulationNode;
 
 import rma.swing.RmaJCheckBox;
 import rma.swing.RmaJXTreeTable;
@@ -130,7 +134,7 @@ public class SimulationTreeTable extends RmaJXTreeTable
 	{
 		JPopupMenu popup = new JPopupMenu();
 		JPopupMenu simPopup = null;
-		/* waiting on WAT PR to be approved.
+		
 		if ( sim != null )
 		{
 			MutableTreeNode node = Browser.getBrowserFrame().getProjectTree().getNodeForManager(sim);
@@ -140,7 +144,7 @@ public class SimulationTreeTable extends RmaJXTreeTable
 				simPopup = simNode.buildPopupMenu();
 			}
 		}
-		*/
+		
 		if (simPopup != null )
 		{
 			int compCnt = simPopup.getComponentCount();
