@@ -13,6 +13,7 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 import java.util.logging.Logger;
@@ -41,6 +42,8 @@ import rma.swing.RmaInsets;
 import rma.swing.RmaJTextField;
 import rma.swing.tree.RmaJTree;
 import rma.util.RMAIO;
+import usbr.wat.plugins.actionpanel.gitIntegration.event.RepoSelectionEvent;
+import usbr.wat.plugins.actionpanel.gitIntegration.event.RepoSelectionListener;
 import usbr.wat.plugins.actionpanel.gitIntegration.model.GitToken;
 
 
@@ -98,8 +101,10 @@ public class RepoJTree extends EnabledJPanel
 	private RmaJTextField _repoPathLabel;
 	private FolderNode _root;
 	private SelectionType _selectionType = SelectionType.Folder;
-	private boolean _fillingTree;
+	private boolean _fillingTree = true;
 	private String _selection;
+	private boolean _treeNotFilled;
+	private List<RepoSelectionListener> _selectionListeners = new ArrayList<>();
 	
 	
 	public RepoJTree(SelectionType type)
@@ -238,15 +243,54 @@ public class RepoJTree extends EnabledJPanel
 	 */
 	private void treePathSelected()
 	{
+		try
+		{
+			TreePath path = _repoLocationTree.getSelectionPath();
+			if ( path == null )
+			{
+				_repoPathLabel.setText("");
+				return;
+			}
+			String repoPath = getRepoPathFromTreePath(path, true);
+			_repoPathLabel.setText(repoPath);
+		}
+		finally
+		{
+			fireSelectionListeners();
+		}
+	}
+	/**
+	 * 
+	 */
+	private void fireSelectionListeners()
+	{
+		
+		RepoSelectionListener listeners;
+		RepoSelectionEvent event = new RepoSelectionEvent(getRepoName(), getRepoUrl(), getRepoPath());
+		for(int i = _selectionListeners.size()-1; i >=0; i-- )
+		{
+			_selectionListeners.get(i).repoSelectionChanged(event);
+		}
+	}
+
+	/**
+	 * @return
+	 */
+	private String getRepoName()
+	{
 		TreePath path = _repoLocationTree.getSelectionPath();
 		if ( path == null )
 		{
-			_repoPathLabel.setText("");
-			return;
+			return null;
 		}
-		String repoPath = getRepoPathFromTreePath(path, true);
-		_repoPathLabel.setText(repoPath);
+		FolderNode node = (FolderNode) path.getLastPathComponent();
+		if ( node.isProjectNode() )
+		{
+			return node.toString().trim();
+		}
+		return null;
 	}
+
 	/**
 	 * @param path
 	 * @return
@@ -272,6 +316,7 @@ public class RepoJTree extends EnabledJPanel
 				break;
 			}
 			builder.append(node.getPathName());
+			builder.append("/");
 			if ( node.isProjectNode()&& _selectionType == SelectionType.Project)
 			{
 				builder.append(RMAIO.getFileFromPath(node.getGitFile()));
@@ -295,22 +340,33 @@ public class RepoJTree extends EnabledJPanel
 		try
 		{
 			List<Project> projects = getRepoProjects();
-			_logger.fine("fillRepoTree:projects = "+projects);
-			Project gitPrj;
-			_root = new FolderNode("WAT Studies", "wat-studies", null, null);
-			for (int i = 0; i < projects.size(); i++ )
+			if ( projects != null )
 			{
-				gitPrj = projects.get(i);
-				if ( !gitPrj.getPathWithNamespace().startsWith(GIT_ROOT_PATH))
+				_logger.fine("fillRepoTree:projects = "+projects);
+				Project gitPrj;
+				_root = new FolderNode("WAT Studies", "wat-studies", null, null);
+				for (int i = 0; i < projects.size(); i++ )
 				{
-					continue;
-				}
-				addToTree(_root, gitPrj);
+					gitPrj = projects.get(i);
+					if ( !gitPrj.getPathWithNamespace().startsWith(GIT_ROOT_PATH))
+					{
+						continue;
+					}
+					addToTree(_root, gitPrj);
 
+				}
+				DefaultTreeModel newModel = new DefaultTreeModel(_root);
+				_repoLocationTree.setModel(newModel);
+				_repoLocationTree.expandAll(true);
+				_treeNotFilled = false;
 			}
-			DefaultTreeModel newModel = new DefaultTreeModel(_root);
-			_repoLocationTree.setModel(newModel);
-			_repoLocationTree.expandAll(true);
+			else
+			{
+				DefaultTreeModel newModel = new DefaultTreeModel(new FolderNode("Unable to Retrieve Repo Projects...",null, null, null));
+				_repoLocationTree.setModel(newModel);
+				
+				_treeNotFilled = true;
+			}
 		}
 		finally
 		{
@@ -427,6 +483,11 @@ public class RepoJTree extends EnabledJPanel
 	private List<Project> getRepoProjects()
 	{
 		String token = getGitToken();
+		if ( token == null || token.trim().isEmpty())
+		{
+			
+			return null;
+		}
 		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		GitLabApi gitLabApi = new GitLabApi(GIT_URL, token);
 		System.out.println("getRepoProjects:connected to "+gitLabApi.getGitLabServerUrl());
@@ -454,7 +515,18 @@ public class RepoJTree extends EnabledJPanel
 		}
 		
 	}
-
+	public void addRepoSelectionListener(RepoSelectionListener listener)
+	{
+		if ( listener != null )
+		{
+			_selectionListeners.add(listener);
+		}
+	}
+	
+	public void removeRepoSelectionListener(RepoSelectionListener listener)
+	{
+		_selectionListeners.remove(listener);
+	}
 
 
 	/**
@@ -465,19 +537,37 @@ public class RepoJTree extends EnabledJPanel
 		String token = GitToken.getGitToken(SwingUtilities.windowForComponent(this));
 		return token;
 	}
-	
-	
 	/**
+	 * get the repo path relative to the parent url
 	 * @return
 	 */
 	public String getRepoPath()
 	{
+		return getRepoPath(false);
+	}
+	/**
+	 * get the full url to the selected repo
+	 * @return
+	 */
+	public String getRepoUrl()
+	{
+		return getRepoPath(true);
+	}
+	/**
+	 * @return
+	 */
+	public String getRepoPath(boolean fullUrl)
+	{
+		if ( _treeNotFilled )
+		{
+			return null;
+		}
 		TreePath path = _repoLocationTree.getSelectionPath();
 		if ( path == null )
 		{
 			return null;
 		}
-		return getRepoPathFromTreePath(path, false);
+		return getRepoPathFromTreePath(path, fullUrl);
 	}
 	
 	@SuppressWarnings("serial")
@@ -538,16 +628,20 @@ public class RepoJTree extends EnabledJPanel
 		{
 			pathLower = pathLower.substring(GIT_URL.length());
 		}
-		if ( !pathLower.startsWith(GIT_ROOT_PATH.toLowerCase()))
+		if ( !pathLower.startsWith("/"+GIT_ROOT_PATH.toLowerCase()))
 		{
 			_repoLocationTree.clearSelection();
 			_logger.info("Invalid starting path for " + path+" tree starts with "+GIT_ROOT_PATH);
 			_repoPathLabel.setText(pathLower);
 			return;
 		}
-		String shortenedPath = pathLower.substring(GIT_ROOT_PATH.length());
-		FolderNode current = _root, node;
+		String shortenedPath = pathLower.substring(("/"+GIT_ROOT_PATH).length());
+		FolderNode current = (FolderNode) _repoLocationTree.getModel().getRoot(), node;
 		StringTokenizer tokenizer = new StringTokenizer(shortenedPath, "/");
+		if ( tokenizer.hasMoreTokens())
+		{
+			tokenizer.nextToken();  // skip root
+		}
 		String pathPart;
 		while ( tokenizer.hasMoreTokens() && current != null)
 		{

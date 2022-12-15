@@ -155,7 +155,11 @@ public class DownloadStudyAction extends AbstractStudyGitAction
 			{
 				return rv;
 			}
-			return downloadStudyAction();
+			if ( !isClone )
+			{
+				return downloadStudyAction();
+			}
+			return rv;
 		}
 		finally
 		{

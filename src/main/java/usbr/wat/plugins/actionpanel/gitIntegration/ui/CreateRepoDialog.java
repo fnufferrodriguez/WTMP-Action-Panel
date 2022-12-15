@@ -17,6 +17,7 @@ import java.awt.event.WindowEvent;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 
 import com.rma.io.FileManagerImpl;
 import com.rma.swing.RmaFileChooserField;
@@ -261,14 +262,23 @@ public class CreateRepoDialog extends RmaJDialog
 	{
 		if ( _repoNameFld.getText().trim().isEmpty())
 		{
+			String msg = "Please Enter a name for the Repository";
+			String title = "No Name Entered";
+			JOptionPane.showMessageDialog(this, msg, title, JOptionPane.INFORMATION_MESSAGE);
 			return false;
 		}
 		if ( _studyFolderFld.getPath().isEmpty())
 		{
+			String msg = "Please Enter the path for the study";
+			String title = "No Study Entered";
+			JOptionPane.showMessageDialog(this, msg, title, JOptionPane.INFORMATION_MESSAGE);
 			return false;
 		}
 		if ( getRepoPath() == null )
 		{
+			String msg = "Invalid Repository Location Selected";
+			String title = "Invalid Repository URL";
+			JOptionPane.showMessageDialog(this, msg, title, JOptionPane.INFORMATION_MESSAGE);
 			return false;
 		}
 		return true;

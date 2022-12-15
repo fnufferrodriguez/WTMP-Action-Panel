@@ -39,6 +39,7 @@ import rma.swing.RmaJDialog;
 import rma.swing.RmaJTextField;
 import rma.swing.list.RmaListModel;
 import usbr.wat.plugins.actionpanel.gitIntegration.actions.DownloadStudyAction;
+import usbr.wat.plugins.actionpanel.gitIntegration.event.RepoSelectionEvent;
 import usbr.wat.plugins.actionpanel.gitIntegration.model.RepoInfo;
 import usbr.wat.plugins.actionpanel.gitIntegration.ui.RepoJTree;
 import usbr.wat.plugins.actionpanel.gitIntegration.utils.GitRepoUtils;
@@ -62,6 +63,7 @@ public class ReposEditor extends RmaJDialog
 	private RepoInfo _currentRepo;
 	private AbstractAction _defaultAction;
 	private RepoJTree _repoTree;
+	private JLabel _warningLabel;
 
 	/**
 	 * @param parent
@@ -134,7 +136,8 @@ public class ReposEditor extends RmaJDialog
 		gbc.insets    = RmaInsets.INSETS5505;
 		getContentPane().add(_reposCombo, gbc);
 		
-		_addRepoButton = new JButton("Add");
+		_addRepoButton = new JButton("New");
+		_addRepoButton.setToolTipText("Adds a new Repository Info to WTMP");
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -213,6 +216,17 @@ public class ReposEditor extends RmaJDialog
 		gbc.fill      = GridBagConstraints.HORIZONTAL;
 		gbc.insets    = RmaInsets.INSETS5555;
 		_infoPanel.add(_destFolderFld, gbc);
+		
+		_warningLabel = new JLabel();
+		gbc.gridx     = GridBagConstraints.RELATIVE;
+		gbc.gridy     = GridBagConstraints.RELATIVE;
+		gbc.gridwidth = GridBagConstraints.REMAINDER;
+		gbc.weightx   = 1.0;
+		gbc.weighty   = 0.0;
+		gbc.anchor    = GridBagConstraints.WEST;
+		gbc.fill      = GridBagConstraints.HORIZONTAL;
+		gbc.insets    = RmaInsets.INSETS5555;
+		_infoPanel.add(_warningLabel, gbc);
 		
 		label = new JLabel("Source URL:");
 		gbc.gridx     = GridBagConstraints.RELATIVE;
@@ -358,6 +372,7 @@ public class ReposEditor extends RmaJDialog
 			}
 			
 		});
+		_destFolderFld.addFileSelectedListener(e->checkForExistingRepo());
 		
 		addWindowListener(new WindowAdapter()
 		{
@@ -367,13 +382,14 @@ public class ReposEditor extends RmaJDialog
 				EventQueue.invokeLater(()->_repoTree.fillRepoTree());
 			}
 		});
-		_destFolderFld.addFileSelectedListener(e->checkForExistingRepo());
 		
 		_reposCombo.addItemListener(e->reposComboChanged(e));
 		
 		_addRepoButton.addActionListener(e->addRepoAction());
 		
 		_deleteRepoButton.addActionListener(e->deleteRepoAction());
+		
+		_repoTree.addRepoSelectionListener(e->repoTreeSelected(e));
 		
 		_cmdPanel.addCmdPanelListener(new ButtonCmdPanelListener()
 		{
@@ -390,9 +406,11 @@ public class ReposEditor extends RmaJDialog
 					case ButtonCmdPanel.OK_BUTTON :
 						if ( isValidForm())
 						{
-							saveForm();
+							if ( saveForm())
+							{
+								setVisible(false);
+							}
 						}
-						setVisible(false);
 						break;
 					case ButtonCmdPanel.CANCEL_BUTTON :
 						setVisible(false);
@@ -402,8 +420,27 @@ public class ReposEditor extends RmaJDialog
 
 			
 		});
+		
 	}
 	
+	/**
+	 * @param e
+	 * @return
+	 */
+	private void repoTreeSelected(RepoSelectionEvent e)
+	{
+		if ( _currentRepo != null || !_repoNameFld.isEditable())
+		{
+			return;
+		}
+		String name = e.getRepoName();
+		if ( name != null && !_repoNameFld.isModified())
+		{
+			_repoNameFld.setText(name);
+		}
+	}
+
+
 	/**
 	 * @return
 	 */
@@ -529,25 +566,26 @@ public class ReposEditor extends RmaJDialog
 		
 	}
 
-	private void saveForm()
+	private boolean saveForm()
 	{
 		if ( !isModified())
 		{
-			return;
+			return true;
 		}
-		if ( _currentRepo == null )
+		boolean rv = true;
+		if ( _currentRepo == null && _repoNameFld.isEditable())   //adding a repo
 		{
 			RepoInfo repo = new RepoInfo();
-			repo.setName(_repoNameFld.getText());
-			repo.setLocalPath(_destFolderFld.getText());
-			repo.setSourceUrl(_repoTree.getRepoPath());
+			repo.setName(_repoNameFld.getText().trim());
+			repo.setLocalPath(_destFolderFld.getText().trim());
+			repo.setSourceUrl(_repoTree.getRepoUrl().trim());
 			if ( GitRepoUtils.hasGitRepo(repo.getLocalPath()))
 			{
 				int opt = JOptionPane.showConfirmDialog(this, "<html>The folder "+repo.getLocalPath()
 					+" appears to already have been configured to work with Git.<br>Do you want to add it anyway?", "Existing Repo", JOptionPane.YES_NO_OPTION);
 				if ( JOptionPane.YES_OPTION != opt )
 				{
-					return;
+					return rv;
 				}
 			}
 			if ( GitRepoUtils.addRepo(repo, true))
@@ -562,20 +600,23 @@ public class ReposEditor extends RmaJDialog
 					if ( !action.downloadStudyAction())
 					{
 						msg = "Download Failed";
+						rv = false;
 					}
 					JOptionPane.showMessageDialog(this,  msg, "Status", JOptionPane.INFORMATION_MESSAGE);
 				}
 				setModified(false);
 			}
 		}
-		else
+		else if ( _currentRepo != null )   // existing repo
 		{
 			_currentRepo.setLocalPath(_destFolderFld.getText());
-			_currentRepo.setSourceUrl(_repoTree.getRepoPath());
+			_currentRepo.setSourceUrl(_repoTree.getRepoUrl());
 			GitRepoUtils.writeRepo(_currentRepo);
 			setModified(false);
 		}
 		_addRepoButton.setEnabled(true);
+		return rv;
+		
 	}
 
 	/**
@@ -583,18 +624,31 @@ public class ReposEditor extends RmaJDialog
 	 */
 	protected boolean isValidForm()
 	{
+		if ( _currentRepo == null && !_repoNameFld.isEditable())
+		{
+			return true;
+		}
 		String name = _repoNameFld.getText().trim();
 		if ( name.isEmpty() )
 		{
+			String msg = "Please Enter a name for the Repository";
+			String title = "No Name Entered";
+			JOptionPane.showMessageDialog(this, msg, title, JOptionPane.INFORMATION_MESSAGE);
 			return false;
 		}
 		String remoteUrl = _repoTree.getRepoPath();
-		if ( remoteUrl.isEmpty() )
+		if ( remoteUrl == null || remoteUrl.trim().isEmpty() )
 		{
+			String msg = "Please Select a Location for the Repository";
+			String title = "No Repository Selected";
+			JOptionPane.showMessageDialog(this, msg, title, JOptionPane.INFORMATION_MESSAGE);
 			return false;
 		}
 		if ( !GitRepoUtils.isValidRemoteUrl(remoteUrl))
 		{
+			String msg = "Invalid Repository Location Selected";
+			String title = "Invalid Repository URL";
+			JOptionPane.showMessageDialog(this, msg, title, JOptionPane.INFORMATION_MESSAGE);
 			return false;
 		}
 		
