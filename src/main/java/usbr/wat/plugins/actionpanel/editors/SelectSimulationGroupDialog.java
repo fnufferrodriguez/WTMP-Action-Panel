@@ -13,10 +13,12 @@ import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.Objects;
 import java.util.Vector;
 import java.util.logging.Logger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
+import java.util.stream.Collectors;
 
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -519,6 +521,8 @@ public class SelectSimulationGroupDialog extends RmaJDialog
 		
 		Project proj = Project.getCurrentProject();
 		List<SimulationGroup> simGroups = proj.getManagerListForType(SimulationGroup.class);
+		// sometimes a null SimulationGroup comes back, filter those out.
+		simGroups = simGroups.stream().filter(Objects::nonNull).collect(Collectors.toList());
 		try
 		{
 			RMASort.quickSort(simGroups);
