@@ -38,19 +38,27 @@ public class ExtractLoginInfo
 		{
 			return false;
 		}
-		_userName = dlg.getUserName();
-		_password = dlg.getPassword();
+		_userName = dlg.getUserName().trim();
+		_password = dlg.getPassword().trim();
 		return true;
 			
 	}
 	
 	public static String getUserName()
 	{
+		if ( _userName!=null && _userName.isEmpty())
+		{
+			return null;
+		}
 		return _userName;
 	}
 	
 	public static String getPassword()
 	{
+		if ( _password!=null && _password.isEmpty())
+		{
+			return null;
+		}
 		return _password;
 	}
 }
