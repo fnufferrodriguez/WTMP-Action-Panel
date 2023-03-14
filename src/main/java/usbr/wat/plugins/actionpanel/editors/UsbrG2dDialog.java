@@ -195,6 +195,7 @@ public class UsbrG2dDialog extends G2dDialog
 			plotData.add(g2dObj);
 		}
 		getPlotpanel().buildComponents(plotData);
+		getPlotpanel().useLineStyles(_useLineStyles);
 		setTitle(dssItem.name);
 	}
 
