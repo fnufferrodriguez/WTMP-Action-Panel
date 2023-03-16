@@ -151,7 +151,7 @@ public class ExtractDialog extends RmaJDialog
 		gbc.weightx   = 1.0;
 		gbc.weighty   = 0.0;
 		gbc.anchor    = GridBagConstraints.NORTHWEST;
-		gbc.fill      = GridBagConstraints.NONE;
+		gbc.fill      = GridBagConstraints.HORIZONTAL;
 		gbc.insets    = RmaInsets.INSETS5505;
 		getContentPane().add(timeWindowPanel, gbc);
 		
@@ -414,9 +414,9 @@ public class ExtractDialog extends RmaJDialog
 		if ( simulationGroup.getAnalysisPeriod() != null )
 		{
 			RunTimeWindow rtw = simulationGroup.getAnalysisPeriod().getRunTimeWindow();
-			TimeZone tz = TimeZone.getDefault();
-			_startDateTimePanel.setDateTime(rtw.getStartTime(), Project.getCurrentProject().getTimeZone());
-			_endDateTimePanel.setDateTime(rtw.getEndTime(), Project.getCurrentProject().getTimeZone());
+			TimeZone tz = Project.getCurrentProject().getTimeZone();
+			_startDateTimePanel.setDateTime(rtw.getStartTime(), tz);
+			_endDateTimePanel.setDateTime(rtw.getEndTime(), tz);
 			okbutton.setToolTipText("Run the data extract");
 			okbutton.setEnabled(true);
 		}
@@ -574,6 +574,9 @@ public class ExtractDialog extends RmaJDialog
 		logFolder = RMAIO.concatPath(logFolder, EXTRACT_LOGS_DIR);
 		FileManagerImpl.getFileManager().createDirectory(logFolder);
 		Path logPath = Paths.get(logFolder);
+		//int tzOffset = TimeZone.getDefault().getRawOffset();
+		//Instant startInstant = _startDateTimePanel.getDateTime().elementAt(0).getJavaDate(tzOffset*60).toInstant();
+		//Instant endInstant = _endDateTimePanel.getDateTime().elementAt(0).getJavaDate(tzOffset*60).toInstant();
 		Instant startInstant = _startDateTimePanel.getDateTime().elementAt(0).getJavaDate(0).toInstant();
 		Instant endInstant = _endDateTimePanel.getDateTime().elementAt(0).getJavaDate(0).toInstant();
 		String fpart = _dssFpartFld.getText().trim();
