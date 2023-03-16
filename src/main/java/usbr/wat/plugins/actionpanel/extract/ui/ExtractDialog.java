@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.Vector;
 
 import javax.swing.BorderFactory;
@@ -155,7 +156,6 @@ public class ExtractDialog extends RmaJDialog
 		getContentPane().add(timeWindowPanel, gbc);
 		
 		_startDateTimePanel= new DateTimePanel(DateTimePanel.HORIZONTAL_LAYOUT, "Start Date:", "Time:", DateDocument.DDMMMYYYY);
-		_startDateTimePanel.setEditable(false);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -167,7 +167,6 @@ public class ExtractDialog extends RmaJDialog
 		timeWindowPanel.add(_startDateTimePanel, gbc);
 		
 		_endDateTimePanel= new DateTimePanel(DateTimePanel.HORIZONTAL_LAYOUT, "End Date:", "Time:", DateDocument.DDMMMYYYY);
-		_endDateTimePanel.setEditable(false);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -415,6 +414,7 @@ public class ExtractDialog extends RmaJDialog
 		if ( simulationGroup.getAnalysisPeriod() != null )
 		{
 			RunTimeWindow rtw = simulationGroup.getAnalysisPeriod().getRunTimeWindow();
+			TimeZone tz = TimeZone.getDefault();
 			_startDateTimePanel.setDateTime(rtw.getStartTime(), Project.getCurrentProject().getTimeZone());
 			_endDateTimePanel.setDateTime(rtw.getEndTime(), Project.getCurrentProject().getTimeZone());
 			okbutton.setToolTipText("Run the data extract");
