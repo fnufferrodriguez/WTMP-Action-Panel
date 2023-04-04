@@ -318,6 +318,8 @@ public class TempTargetPanel extends AbstractForecastPanel
 				}
 			}
 		}
+
+		_createButton.setEnabled(fsg != null);
 		
 	}
 

@@ -84,7 +84,7 @@ public final class TempTargetImportDialog extends RmaJDialog
         pack();
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         setMinimumSize(getSize());
-        setPreferredSize(new Dimension(getSize().width * 2, getSize().height));
+        setSize(new Dimension(400, getPreferredSize().height));
         setLocationRelativeTo(getParent());
         setVisible(true);
     }
@@ -530,12 +530,11 @@ public final class TempTargetImportDialog extends RmaJDialog
         gbc.gridwidth = GridBagConstraints.RELATIVE;
         gbc.weightx   = 0.0;
         gbc.weighty   = 0.0;
-        gbc.anchor    = GridBagConstraints.NORTHWEST;
+        gbc.anchor    = GridBagConstraints.WEST;
         gbc.fill      = GridBagConstraints.NONE;
         gbc.insets    = RmaInsets.INSETS5505;
         importPanel.add(new JLabel("Select set:"), gbc);
 
-        RmaJPanel selectSetComboPanel = new RmaJPanel(new GridBagLayout());
         _temperatureSetsComboBox = new RmaJComboBox<>();
         gbc = new GridBagConstraints();
         gbc.gridx     = GridBagConstraints.RELATIVE;
@@ -546,18 +545,8 @@ public final class TempTargetImportDialog extends RmaJDialog
         gbc.anchor    = GridBagConstraints.NORTHWEST;
         gbc.fill      = GridBagConstraints.HORIZONTAL;
         gbc.insets    = RmaInsets.INSETS5505;
-        selectSetComboPanel.add(_temperatureSetsComboBox, gbc);
+        importPanel.add(_temperatureSetsComboBox, gbc);
 
-        gbc = new GridBagConstraints();
-        gbc.gridx     = GridBagConstraints.RELATIVE;
-        gbc.gridy     = GridBagConstraints.RELATIVE;
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.weightx   = 0.001;
-        gbc.weighty   = 0.001;
-        gbc.anchor    = GridBagConstraints.NORTHWEST;
-        gbc.fill      = GridBagConstraints.HORIZONTAL;
-        gbc.insets    = RmaInsets.INSETS5505;
-        importPanel.add(selectSetComboPanel, gbc);
         return importPanel;
     }
 
