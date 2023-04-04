@@ -42,7 +42,7 @@ public class EditInterativeSimulationAction extends AbstractAction
 	@Override
 	public void actionPerformed(ActionEvent arg0)
 	{
-		SimulationGroup simGroup = _parent.getSimulationGroup();
+		SimulationGroup simGroup = _parent.getCalibrationPanel().getSimulationGroup();
 		if ( simGroup == null )
 		{
 			JOptionPane.showMessageDialog(_parent,"Please create or select a Simulation Group first",
@@ -50,7 +50,7 @@ public class EditInterativeSimulationAction extends AbstractAction
 			return;
 			
 		}
-		List<WatSimulation>sims = _parent.getSelectedSimulations();
+		List<WatSimulation>sims = _parent.getCalibrationPanel().getSelectedSimulations();
 		EditIterationSettingsDialog dlg = new EditIterationSettingsDialog(_parent);
 		dlg.fillForm(simGroup);
 		if ( sims.size() > 0 )

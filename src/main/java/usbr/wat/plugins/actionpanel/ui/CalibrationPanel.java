@@ -59,6 +59,7 @@ public class CalibrationPanel extends AbstractSimulationPanel
 	private NameDescriptionPanel _nameDescPanel;
 	private JLabel _apStartLabel;
 	private JLabel _apEndLabel;
+	private SimulationGroup _simGroup;
 
 	public CalibrationPanel(ActionsWindow parent)
 	{
@@ -307,6 +308,7 @@ public class CalibrationPanel extends AbstractSimulationPanel
 	{
 		
 		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		_simGroup = (SimulationGroup) asg;
 		try
 		{
 			clearForm();
@@ -376,7 +378,7 @@ public class CalibrationPanel extends AbstractSimulationPanel
 	@Override
 	public SimulationGroup getSimulationGroup()
 	{
-		return _parentWindow.getSimulationGroup();
+		return _simGroup;
 	}
 	
 	
