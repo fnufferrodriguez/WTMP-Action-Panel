@@ -12,7 +12,10 @@ import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Vector;
 
 import javax.swing.JSeparator;
 import javax.swing.ListSelectionModel;
@@ -27,6 +30,8 @@ import rma.swing.RmaJPanel;
 import rma.swing.RmaJTable;
 import rma.swing.table.RmaTableModel;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
+import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
+import usbr.wat.plugins.actionpanel.ui.forecast.temptarget.TempTargetForecastTableModel;
 
 /**
  * @author mark
@@ -200,8 +205,10 @@ public abstract class AbstractForecastPanel extends RmaJPanel
 		}
 		if ( _tempTargetTableModel == null )
 		{
-			_tempTargetTableModel = (RmaTableModel) _tempTargetTable.getModel();
+			_tempTargetTableModel = new TempTargetForecastTableModel();
+			_tempTargetTable.setModel(_tempTargetTableModel);
 		}
+		_tempTargetTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		_tempTargetTable.setName("Temperature Target Sets");
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
@@ -271,17 +278,17 @@ public abstract class AbstractForecastPanel extends RmaJPanel
 
 
 	/**
-	 * @param table
+	 * @param forecastTable
 	 * @return
 	 */
-	private AbstractForecastPanel getPanelForTable(ForecastTable table)
+	private AbstractForecastPanel getPanelForTable(ForecastTable forecastTable)
 	{
 		for(int i = 0; i < _panels.size(); i++ )
 		{
-			table = _panels.get(i).getTableForPanel();
+			ForecastTable table = _panels.get(i).getTableForPanel();
 			if ( table != null )
 			{
-				if ( table.getName().equals(table.getName()))
+				if ( table.getName().equals(forecastTable.getName()))
 				{
 					return _panels.get(i);
 				}
@@ -321,7 +328,7 @@ public abstract class AbstractForecastPanel extends RmaJPanel
 		
 	}
 
-	class ForecastTable extends RmaJTable
+	protected class ForecastTable extends RmaJTable
 	{
 
 		private Border _defaultBorder;

@@ -21,7 +21,7 @@ import usbr.wat.plugins.actionpanel.model.AbstractSimulationGroup;
  */
 public class ForecastSimGroup extends AbstractSimulationGroup
 {
-	private List<TemperatureTarget> _tempTargets = new ArrayList<>();
+	private List<TemperatureTargetSet> _tempTargetSets = new ArrayList<>();
 	private InitialConditions _initConditions = new InitialConditions();
 	private List<MeteorlogicData> _metData = new ArrayList<>();
 
@@ -39,7 +39,7 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 	@Override
 	protected void finishLoading(Element root)
 	{
-		loadTempTargets(root);
+		loadTempTargetSets(root);
 		loadInitialConditions(root);
 		loadMetData(root);
 		
@@ -87,26 +87,25 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 	/**
 	 * @param root
 	 */
-	private void loadTempTargets(Element root)
+	private void loadTempTargetSets(Element root)
 	{
-		Element tempTargetsElem = root.getChild("TemperatureTargets");
+		Element tempTargetsElem = root.getChild("TemperatureTargetSets");
 		if ( tempTargetsElem == null )
 		{
 			return;
 		}
 		List kids = tempTargetsElem.getChildren();
 		Element child;
-		TemperatureTarget tt;
+		TemperatureTargetSet tt;
 		for (int i = 0;i < kids.size(); i++ )
 		{
-			tt = new TemperatureTarget();
+			tt = new TemperatureTargetSet();
 			child = (Element) kids.get(i);
 			if ( tt.loadData(child))
 			{
-				_tempTargets.add(tt);
+				_tempTargetSets.add(tt);
 			}
 		}
-		
 	}
 
 	@Override
@@ -121,7 +120,7 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 	@Override
 	protected void initForLoading()
 	{
-		_tempTargets.clear();
+		_tempTargetSets.clear();
 	}
 	/**
 	 * @return
@@ -187,15 +186,17 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 	 */
 	private void saveTempTargets(Element root)
 	{
-		Element tempTargetsElem = new Element("TemperatureTargets");
+		Element tempTargetsElem = new Element("TemperatureTargetSets");
 		root.addContent(tempTargetsElem);
-		TemperatureTarget tt;
-		for (int i = 0;i < _tempTargets.size(); i++ )
+		TemperatureTargetSet tt;
+		for (int i = 0; i < _tempTargetSets.size(); i++ )
 		{
-			tt = _tempTargets.get(i);
-			tt.saveData(tempTargetsElem);
+			tt = _tempTargetSets.get(i);
+			if(tt != null)
+			{
+				tt.saveData(tempTargetsElem);
+			}
 		}
-		
 	}
 
 	/**
@@ -222,19 +223,19 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 		return _initConditions;
 	}
 	
-	public void setTemperaturTargets(List<TemperatureTarget> tt)
+	public void setTemperatureTargetSets(List<TemperatureTargetSet> tt)
 	{
 		setModified(true);
-		_tempTargets.clear();
+		_tempTargetSets.clear();
 		if ( tt != null )
 		{
-			_tempTargets.addAll(tt);
+			_tempTargetSets.addAll(tt);
 		}
 	}
 	
-	public List<TemperatureTarget> getTemperaturTargets()
+	public List<TemperatureTargetSet> getTemperatureTargetSets()
 	{
-		return _tempTargets;
+		return _tempTargetSets;
 	}
 
 	public List<MeteorlogicData> getMeteorlogyData()

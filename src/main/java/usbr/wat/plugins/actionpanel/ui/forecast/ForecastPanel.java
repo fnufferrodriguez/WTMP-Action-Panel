@@ -17,7 +17,9 @@ import rma.swing.RmaInsets;
 import rma.swing.RmaJPanel;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
+import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
 import usbr.wat.plugins.actionpanel.ui.SimulationGroupPanel;
+import usbr.wat.plugins.actionpanel.ui.forecast.temptarget.TempTargetPanel;
 
 /**
  * @author mark
@@ -129,7 +131,6 @@ public class ForecastPanel extends RmaJPanel
 	{
 		_tabbedPane.addChangeListener(e->tabSelectionChanged());
 	}
-
 
 
 	/**

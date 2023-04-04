@@ -532,25 +532,28 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 	protected void savePanel()
 	{
 		ForecastSimGroup simGrp = _forecastPanel.getSimulationGroup();
-		InitialConditions ics = new InitialConditions();
-		
-		Set<String> keySet = _resComponents.keySet();
-		Iterator<String> keyIter = keySet.iterator();
-		String resName;
-		ResComponents comp;
-		List<String>selectedProfileNames;
-		while (keyIter.hasNext())
+		if(simGrp != null)
 		{
-			resName = keyIter.next();
-			comp = _resComponents.get(resName);
-			selectedProfileNames = findSelectedRows(comp.table);
-			if ( selectedProfileNames.size() > 0 ) 
+			InitialConditions ics = new InitialConditions();
+
+			Set<String> keySet = _resComponents.keySet();
+			Iterator<String> keyIter = keySet.iterator();
+			String resName;
+			ResComponents comp;
+			List<String>selectedProfileNames;
+			while (keyIter.hasNext())
 			{
-				ics.putSelectedProfiles(resName, selectedProfileNames);
+				resName = keyIter.next();
+				comp = _resComponents.get(resName);
+				selectedProfileNames = findSelectedRows(comp.table);
+				if ( selectedProfileNames.size() > 0 )
+				{
+					ics.putSelectedProfiles(resName, selectedProfileNames);
+				}
 			}
+			simGrp.setInitialConditions(ics);
 		}
-		simGrp.setInitialConditions(ics);
-		
+
 	}
 	
 	/**
