@@ -286,7 +286,7 @@ public class ActionsWindow extends RmaJDialog
 		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		try
 		{
-			clearForm();
+			_calibrationPanel.clearForm();
 			_calibrationPanel.setSimulationGroup(sg);
 		}
 		finally
