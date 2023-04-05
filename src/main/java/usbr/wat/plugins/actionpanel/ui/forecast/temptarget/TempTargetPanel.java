@@ -201,7 +201,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 	protected void savePanel()
 	{
 		ForecastSimGroup simGrp = _forecastPanel.getSimulationGroup();
-		if(simGrp != null)
+		if(simGrp != null && _selectedTempTargetSet != null)
 		{
 			List<TemperatureTargetSet> sets = new ArrayList<>(simGrp.getTemperatureTargetSets());
 			if(!sets.contains(_selectedTempTargetSet))
