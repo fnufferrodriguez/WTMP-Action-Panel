@@ -20,10 +20,8 @@ import java.util.logging.Logger;
 
 import javax.swing.JButton;
 
-import com.rma.model.Manager;
 import com.rma.model.Project;
 import hec2.wat.model.WatAnalysisPeriod;
-import org.joda.time.LocalDate;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
@@ -144,7 +142,7 @@ public class BcPanel extends AbstractForecastPanel
 
 	private void runScript(BcData bcData)
 	{
-		createSimGroupDir();
+		createScriptsDir();
 		WatAnalysisPeriod analysisPeriod = _fsg.getAnalysisPeriod();
 		if(analysisPeriod != null)
 		{
@@ -160,29 +158,32 @@ public class BcPanel extends AbstractForecastPanel
 			{
 				int targetYear = analysisPeriod.getRunTimeWindow().getStartTime().year();
 				String bcFPart = bcData.getName();
-				String bcOutputDssFile = Project.getCurrentProject().getAbsolutePath("forecastData/" + _fsg.getName() + "/bc.dss");
+				String bcOutputDssFile = Project.getCurrentProject().getAbsolutePath("forecast/" + _fsg.getName() + "/bc.dss");
 				String opsFileName = opsData.getOperationsFile();
-				String dssMapFile = Project.getCurrentProject().getAbsolutePath("forecastData/" + _fsg.getName() + "/" + bcData.getName() + ".txt");
+				String dssMapFile = Project.getCurrentProject().getAbsolutePath("forecast/" + _fsg.getName() + "/" + bcData.getName() + ".txt");
 				int positionAnalysisYear = metData.getYear();
 				String positionalAnalysisConfigFile = Project.getCurrentProject().getAbsolutePath("shared/config/historical_met.config");
 				String metFPart = bcFPart;
 				String metOutputDssFileName = bcOutputDssFile;
 				String opsImportFPart = bcFPart;
 				String flowPatternConfigFile = Project.getCurrentProject().getAbsolutePath("shared/config/flow_pattern.config");
-				PythonScriptUtil.runScript(Paths.get("scripts/BoundaryConditionScript.py"), "build_BC_data_sets",
+				PythonScriptUtil.runScript(Paths.get("forecast/scripts/BoundaryConditionScript.py"), "build_BC_data_sets",
 						targetYear, bcFPart, bcOutputDssFile, opsFileName, dssMapFile, positionAnalysisYear, positionalAnalysisConfigFile,
 						metFPart, metOutputDssFileName, flowPatternConfigFile, opsImportFPart);
 			}
 		}
 	}
 
-	private void createSimGroupDir()
+	private void createScriptsDir()
 	{
-		String forecastSimGroupDirectory = "forecastData/" + _fsg.getName();
+		String forecastSimGroupDirectory = "forecast/" + _fsg.getName();
+		String scriptsDir = "forecast/scripts";
 		try
 		{
-			Path newDssFilesDirectory = Paths.get(Project.getCurrentProject().getAbsolutePath(forecastSimGroupDirectory));
-			Files.createDirectories(newDssFilesDirectory);
+			Path absSimGroupDirectory = Paths.get(Project.getCurrentProject().getAbsolutePath(forecastSimGroupDirectory));
+			Files.createDirectories(absSimGroupDirectory);
+			Path absScriptDir = Paths.get(Project.getCurrentProject().getAbsolutePath(scriptsDir));
+			Files.createDirectories(absScriptDir);
 		}
 		catch (IOException e)
 		{
