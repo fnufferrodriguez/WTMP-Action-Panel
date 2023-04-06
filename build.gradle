@@ -26,6 +26,10 @@ dependencies {
     implementation 'mil.army.usace.hec.swingx:swingx-core:1.6.6'
     implementation 'gov.usbr.wq:merlin-data-exchange:1.6.1'
     runtimeOnly 'org.codehaus.groovy:groovy:3.0.7'
+    runtimeOnly 'jaxen:jaxen:1.1.6'
+    runtimeOnly 'org.springframework:spring-beans:5.3.12'
+    runtimeOnly 'org.springframework:spring-core:5.3.12'
+    runtimeOnly 'org.springframework:spring-jcl:5.3.12'
 }
 
 
