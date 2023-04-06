@@ -33,10 +33,6 @@ public final class PythonScriptUtil
         try (PythonInterpreter pythonInterpreter = new PythonInterpreter())
         {
             Path scriptAbsPath = Paths.get(Project.getCurrentProject().getAbsolutePath(scriptFilePath.toString()));
-            Path parentDir = scriptAbsPath.getParent();
-            pythonInterpreter.exec("import sys");
-            pythonInterpreter.exec("sys.path.append('')");
-            pythonInterpreter.exec(String.format("sys.path.append('%s')", parentDir.toString()));
             pythonInterpreter.execfile(scriptAbsPath.toString());
             PyObject function = pythonInterpreter.get(functionName);
             PyObject[] pyArgs = new PyObject[args.length];
