@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 import javax.swing.*;
 
 import com.rma.model.Project;
+import hec.heclib.util.HecTime;
 import hec2.wat.model.WatAnalysisPeriod;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
@@ -196,7 +197,8 @@ public class BcPanel extends AbstractForecastPanel
 					.orElse(null);
 			if(opsData != null && metData != null)
 			{
-				int targetYear = analysisPeriod.getRunTimeWindow().getStartTime().year();
+				HecTime startTime = new HecTime(analysisPeriod.getRunTimeWindow().getStartTime());
+				HecTime endTime = new HecTime(analysisPeriod.getRunTimeWindow().getEndTime());
 				String bcFPart = bcData.getName();//fPart -> collection fpart
 				Path bcOutputDssFileRelativePath = Paths.get("forecast/simGroups/" + _fsg.getName() + "/bc.dss");
 				String bcOutputDssFile = Project.getCurrentProject().getAbsolutePath(bcOutputDssFileRelativePath.toString());
@@ -210,7 +212,7 @@ public class BcPanel extends AbstractForecastPanel
 				String opsImportFPart = bcFPart;
 				String flowPatternConfigFile = Project.getCurrentProject().getAbsolutePath("shared/config/flow_pattern.config");
 				Integer result = PythonScriptUtil.runScript(scriptFile, "build_BC_data_sets", Integer.class,
-						targetYear, bcFPart, bcOutputDssFile, opsFileName, dssMapFile, positionAnalysisYear, positionalAnalysisConfigFile,
+						startTime, endTime, bcFPart, bcOutputDssFile, opsFileName, dssMapFile, positionAnalysisYear, positionalAnalysisConfigFile,
 						metFPart, metOutputDssFileName, flowPatternConfigFile, opsImportFPart);
 				LOGGER.log(Level.CONFIG, () -> "Result from " + scriptFile + ": " + result);
 			}
