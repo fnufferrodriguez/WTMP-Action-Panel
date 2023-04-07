@@ -36,12 +36,6 @@ public class BcData extends NamedType
 	public void saveData(Element parent)
 	{
 		Element myElem = new Element("BcData");
-		String fPart = "";
-		if(_fPart != null)
-		{
-			fPart = _fPart;
-		}
-		myElem.setAttribute(F_PART_ATTRIBUTE_ID, fPart);
 		parent.addContent(myElem);
 		XMLUtilities.saveNamedType(myElem, this);
 		Element outputDssFileElem = new Element(OUTPUT_DSS_FILE_ELEM_ID);
@@ -50,7 +44,12 @@ public class BcData extends NamedType
 			outputDssFileElem.setText(_outputDssFile.toString());
 		}
 		myElem.addContent(outputDssFileElem);
-
+		Element fPartElement = new Element(F_PART_ATTRIBUTE_ID);
+		if(_fPart != null)
+		{
+			fPartElement.setText(_fPart);
+		}
+		myElem.addContent(fPartElement);
 		Element opsElem = new Element("Operations");
 		myElem.addContent(opsElem);
 		opsElem.setText(_opsDataName);
@@ -67,10 +66,10 @@ public class BcData extends NamedType
 			return false;
 		}
 		XMLUtilities.loadNamedType(myElem, this);
-		Attribute fPartAttribute = myElem.getAttribute(F_PART_ATTRIBUTE_ID);
-		if(fPartAttribute != null)
+		Element fPartElem = myElem.getChild(F_PART_ATTRIBUTE_ID);
+		if(fPartElem != null)
 		{
-			_fPart = fPartAttribute.getValue();
+			_fPart = fPartElem.getText();
 		}
 		Element outputDssFileElem = myElem.getChild(OUTPUT_DSS_FILE_ELEM_ID);
 		if(outputDssFileElem != null)
