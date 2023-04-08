@@ -4,6 +4,7 @@ import hec.heclib.util.HecTime;
 import hec.io.TimeSeriesContainer;
 import rma.swing.table.RmaTableModel;
 import rma.util.RMAConst;
+import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
 
 import java.time.LocalDate;
@@ -48,7 +49,7 @@ final class TempTargetTableModel extends RmaTableModel
             Double val = rowData.getValueForTempTargetColumn(col);
             if(val != null && val != RMAConst.HEC_UNDEFINED_DOUBLE)
             {
-                retVal = roundToNDigits(val, 6);
+                retVal = roundToNDigits(val, 1);
             }
         }
         return retVal;
@@ -117,10 +118,10 @@ final class TempTargetTableModel extends RmaTableModel
         return retVal;
     }
 
-    void setTempTargetSet(TemperatureTargetSet tempTargetSet)
+    void setTempTargetSet(TemperatureTargetSet tempTargetSet, ForecastSimGroup fsg)
     {
         _rowDataList.clear();
-        List<TimeSeriesContainer> tempTargets = tempTargetSet.getTimeSeriesData();
+        List<TimeSeriesContainer> tempTargets = tempTargetSet.getTimeSeriesData(fsg.getAnalysisPeriod().getRunTimeWindow());
         int column = 1;
         initializeRowsWithTimes(tempTargets); //note this is assuming temp targets time series are all using the same times for a given set
         //if that is not a good assumption will need to use an efficient algo for determining if a row has been created for a give time

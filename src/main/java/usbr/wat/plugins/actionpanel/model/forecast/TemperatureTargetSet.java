@@ -9,22 +9,29 @@ import hec.heclib.util.HecTimeArray;
 import hec.io.DSSIdentifier;
 import hec.io.TimeSeriesContainer;
 import hec.lang.NamedType;
+import hec.model.RunTimeWindow;
 import org.jdom.Element;
 import rma.util.RMAConst;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public final class TemperatureTargetSet extends NamedType
 {
+    private static final Logger LOGGER = Logger.getLogger(TemperatureTargetSet.class.getName());
     private static final String USER_DEFINED_ATTRIBUTE_NAME = "user-defined";
     private static final String FILE_PATH_ELEM_NAME = "file-path";
     private static final String PATH_NAMES_ELEM_NAME = "dss-pathnames";
@@ -83,17 +90,38 @@ public final class TemperatureTargetSet extends NamedType
                 }
             }
         }
-        loadTimeSeriesData();
         return true;
     }
 
-    public List<TimeSeriesContainer> getTimeSeriesData()
+    public List<TimeSeriesContainer> getTimeSeriesData(RunTimeWindow timeWindow)
     {
         if(_isUserDefined || _timeSeriesData.isEmpty())
         {
             loadTimeSeriesData();
         }
+        if(!_timeSeriesData.isEmpty() && _timeSeriesData.get(0).getStartTime().getTimeInMillis() != timeWindow.getStartTime().getTimeInMillis())
+        {
+            shiftTimeSeriesDataToAnalysisYear(timeWindow);
+        }
         return new ArrayList<>(_timeSeriesData);
+    }
+
+    private void shiftTimeSeriesDataToAnalysisYear(RunTimeWindow timeWindow)
+    {
+        for(TimeSeriesContainer tsc : _timeSeriesData)
+        {
+            HecTime startTime = timeWindow.getStartTime();
+            LocalDate sourceStart = tsc.getStartTime().getLocalDateTime().toLocalDate();
+            LocalDate analysisStart = startTime.getLocalDateTime().toLocalDate();
+            int diffInMinutes = (int) Duration.between(sourceStart.atStartOfDay(), analysisStart.atStartOfDay()).toMinutes();
+            applyShiftToTsc(tsc, diffInMinutes);
+            int trimStartYear = timeWindow.getStartTime().year();
+            int trimEndYear = timeWindow.getEndTime().year();
+            if(!tsc.allMissing())
+            {
+                tsc.trimToTime(new HecTime("01Jan"+trimStartYear, "0000"),new HecTime("31Dec"+trimEndYear, "2400"));
+            }
+        }
     }
 
     public boolean isUserDefined()
@@ -140,6 +168,10 @@ public final class TemperatureTargetSet extends NamedType
                 TimeSeriesContainer tsc = buildTsFromPathname(pathname);
                 if(tsc != null)
                 {
+                    if(tsc.allMissing())
+                    {
+                        tsc = buildFixedDataForUserDefined();
+                    }
                     _timeSeriesData.add(tsc);
                 }
             }
@@ -151,51 +183,46 @@ public final class TemperatureTargetSet extends NamedType
         DSSIdentifier dssIdentifier = new DSSIdentifier();
         dssIdentifier.setFileName(Project.getCurrentProject().getAbsolutePath(_filePath.toString()));
         dssIdentifier.setDSSPath(pathname.getPathname());
-        return DssFileManagerImpl.getDssFileManager().readTS(dssIdentifier, false);
+        return DssFileManagerImpl.getDssFileManager().readTS(dssIdentifier, true);
+    }
+
+    private void applyShiftToTsc(TimeSeriesContainer tsc, int shift)
+    {
+        if(tsc.times != null)
+        {
+            for(int i=0; i < tsc.times.length; i++)
+            {
+                tsc.times[i] = tsc.times[i] + shift;
+            }
+            tsc.startTime = tsc.times[0];
+            tsc.startHecTime = new HecTime(tsc.startTime);
+            tsc.endTime = tsc.times[tsc.times.length - 1];
+            tsc.endHecTime = new HecTime(tsc.endTime);
+        }
     }
 
     private TimeSeriesContainer buildFixedDataForUserDefined()
     {
         TimeSeriesContainer tsc = new TimeSeriesContainer();
-        int currentYear = LocalDate.now().getYear();
+        int year = 2020;
         LocalTime localTime = LocalTime.of(0, 1);
         ZoneId zoneId = ZoneId.systemDefault();
-        int[] times = new int[31];
-        times[0] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 2, 1), localTime, zoneId)).value();
-        times[1] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 3, 31), localTime, zoneId)).value();
-        times[2] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 4, 7), localTime, zoneId)).value();
-        times[3] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 4, 14), localTime, zoneId)).value();
-        times[4] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 4, 21), localTime, zoneId)).value();
-        times[5] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 4, 30), localTime, zoneId)).value();
-        times[6] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 5, 7), localTime, zoneId)).value();
-        times[7] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 5, 14), localTime, zoneId)).value();
-        times[8] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 5, 21), localTime, zoneId)).value();
-        times[9] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 5, 31), localTime, zoneId)).value();
-        times[10] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 6, 7), localTime, zoneId)).value();
-        times[11] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 6, 14), localTime, zoneId)).value();
-        times[12] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 6, 21), localTime, zoneId)).value();
-        times[13] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 6, 30), localTime, zoneId)).value();
-        times[14] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 7, 7), localTime, zoneId)).value();
-        times[15] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 7, 14), localTime, zoneId)).value();
-        times[16] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 7, 21), localTime, zoneId)).value();
-        times[17] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 7, 31), localTime, zoneId)).value();
-        times[18] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 8, 7), localTime, zoneId)).value();
-        times[19] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 8, 14), localTime, zoneId)).value();
-        times[20] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 8, 21), localTime, zoneId)).value();
-        times[21] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 8, 31), localTime, zoneId)).value();
-        times[22] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 9, 7), localTime, zoneId)).value();
-        times[23] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 9, 15), localTime, zoneId)).value();
-        times[24] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 9, 21), localTime, zoneId)).value();
-        times[25] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 9, 30), localTime, zoneId)).value();
-        times[26] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 10, 7), localTime, zoneId)).value();
-        times[27] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 10, 14), localTime, zoneId)).value();
-        times[28] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 10, 21), localTime, zoneId)).value();
-        times[29] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 10, 31), localTime, zoneId)).value();
-        times[30] = HecTime.fromZonedDateTime(ZonedDateTime.of(LocalDate.of(currentYear, 11, 7), localTime, zoneId)).value();
+        LocalDate startDate = LocalDate.of(year, 1, 1); // Start date: January 1st, 2020
+        LocalDate endDate = LocalDate.of(year+1, 1, 7); // End date: January 3rd, 2021 (first week)
+        int numWeeks = (int) ChronoUnit.WEEKS.between(startDate, endDate);
+        LocalDate currentDate = startDate;
+        int[] times = new int[numWeeks + 1];
+        int i=0;
+        while (currentDate.isBefore(endDate))
+        {
+            times[i] = HecTime.fromZonedDateTime(ZonedDateTime.of(currentDate, localTime, zoneId)).value();
+            currentDate = currentDate.plusDays(7);
+            i++;
+        }
         tsc.times = times;
         tsc.setTimes(new HecTimeArray(times));
-        List<Double> nanList = IntStream.range(0, 31)
-                .mapToObj(i -> RMAConst.HEC_UNDEFINED_DOUBLE)
+        List<Double> nanList = IntStream.range(0, numWeeks +1)
+                .mapToObj(index -> RMAConst.HEC_UNDEFINED_DOUBLE)
                 .collect(Collectors.toList());
         tsc.values = nanList.stream()
                 .mapToDouble(Double::doubleValue)

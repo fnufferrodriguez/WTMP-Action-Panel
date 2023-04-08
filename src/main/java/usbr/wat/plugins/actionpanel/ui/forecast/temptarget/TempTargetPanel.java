@@ -33,7 +33,12 @@ import com.rma.model.Project;
 import hec.data.Units;
 import hec.heclib.dss.DSSPathname;
 import hec.heclib.dss.HecTimeSeriesBase;
+import hec.heclib.util.HecTime;
+import hec.hecmath.HecMath;
+import hec.hecmath.HecMathException;
+import hec.hecmath.TimeSeriesMath;
 import hec.io.TimeSeriesContainer;
+import hec.model.RunTimeWindow;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
@@ -129,6 +134,12 @@ public class TempTargetPanel extends AbstractForecastPanel
 					int existingSetIndex = sets.indexOf(set);
 					sets.add(existingSetIndex, set);
 					sets.remove(existingSetIndex +1);
+				}
+				if(!set.isUserDefined())
+				{
+					List<DSSPathname> pathNames = saveImported(set, _fsg);
+					updatePathNamesInSimGroupList(pathNames);
+					set.setDssPathNames(pathNames);
 				}
 			}
 			_fsg.setTemperatureTargetSets(sets);
@@ -241,7 +252,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 			updateDescription();
 			simGrp.setTemperatureTargetSets(sets);
 		}
-		else
+		else if (simGrp == null || (_ttTable.getRowCount() <1))
 		{
 			clearPanel();
 		}
@@ -308,10 +319,27 @@ public class TempTargetPanel extends AbstractForecastPanel
 		}
 	}
 
-	private List<DSSPathname> saveUserDefinedTable(TemperatureTargetSet tempTargetSet, ForecastSimGroup simGrp)
+	private List<DSSPathname> saveImported(TemperatureTargetSet tempTargetSet, ForecastSimGroup simGrp)
 	{
+		List<TimeSeriesContainer> timeSeriesData = tempTargetSet.getTimeSeriesData(simGrp.getAnalysisPeriod().getRunTimeWindow());
 		List<DSSPathname> retVal = new ArrayList<>();
-		int[] times = new int[_ttTableModel.getRowCount()];
+		String forecastSimGroupDirectory = getSimGroupDirectory(simGrp);
+		String delim = "/";
+		String fileName = forecastSimGroupDirectory + delim + tempTargetSet.getName() +".dss";
+		for(TimeSeriesContainer tsc : timeSeriesData)
+		{
+			tsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
+			DSSPathname pathname = new DSSPathname(tsc.fullName);
+			pathname.setDPart("");
+			tsc.fullName = pathname.getPathname();
+			retVal.add(pathname);
+			saveTimeSeries(tsc);
+		}
+		return retVal;
+	}
+
+	private String getSimGroupDirectory(ForecastSimGroup simGrp)
+	{
 		String forecastSimGroupDirectory = "forecast/simGroups/" + simGrp.getName();
 		try
 		{
@@ -322,6 +350,14 @@ public class TempTargetPanel extends AbstractForecastPanel
 		{
 			LOGGER.log(Level.CONFIG, e, () -> "Failed to create " + forecastSimGroupDirectory + " directories");
 		}
+		return forecastSimGroupDirectory;
+	}
+
+	private List<DSSPathname> saveUserDefinedTable(TemperatureTargetSet tempTargetSet, ForecastSimGroup simGrp)
+	{
+		List<DSSPathname> retVal = new ArrayList<>();
+		int[] times = new int[_ttTableModel.getRowCount()];
+		String forecastSimGroupDirectory = getSimGroupDirectory(simGrp);
 		String delim = "/";
 		String fileName = forecastSimGroupDirectory + delim + tempTargetSet.getName() +".dss";
 		tempTargetSet.setFilePath(Paths.get(fileName));
@@ -336,7 +372,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 			DSSPathname pathname = new DSSPathname();
 			pathname.setBPart(tempTargetSet.getName());
 			pathname.setCPart("TEMP-WATER-TARGET");
-			pathname.setEPart("IR-MONTH");
+			pathname.setEPart("1WEEK");
 			String leadingString = getLeadingString(col);
 			pathname.setFPart(leadingString + col + "|USER-DEFINED");
 			tsc.fullName = pathname.getPathname();
@@ -356,7 +392,9 @@ public class TempTargetPanel extends AbstractForecastPanel
 			tsc.times = times;
 			tsc.values = getUserDefinedValues(col);
 			tsc.numberValues = tsc.values.length;
-			saveUserDefinedTimeSeries(tsc);
+			saveTimeSeries(tsc);
+			fileName = fileName.replace(".dss", "-Weekly.dss");
+			tempTargetSet.setFilePath(Paths.get(Project.getCurrentProject().getRelativePath(fileName)));
 			retVal.add(pathname);
 		}
 		return retVal;
@@ -388,15 +426,44 @@ public class TempTargetPanel extends AbstractForecastPanel
 		return leadingString;
 	}
 
-	private void saveUserDefinedTimeSeries(TimeSeriesContainer tsc)
+	private void saveTimeSeries(TimeSeriesContainer weeklyTsc)
 	{
+		TimeSeriesContainer hourlyTsc = null;
 		try
 		{
-			DssFileManagerImpl.getDssFileManager().write(tsc);
+			weeklyTsc.fileName = weeklyTsc.fileName.replace(".dss", "-Weekly.dss");
+			DssFileManagerImpl.getDssFileManager().write(weeklyTsc);
+			if(!weeklyTsc.allMissing())
+			{
+				TimeSeriesMath timeSeriesMath = new TimeSeriesMath(weeklyTsc);
+				HecMath hecMath = timeSeriesMath.interpolateDataAtRegularInterval("1HOUR", "0M");
+				hourlyTsc = (TimeSeriesContainer) hecMath.getData();
+				hourlyTsc.startTime = hourlyTsc.times[0];
+				hourlyTsc.startHecTime = new HecTime(hourlyTsc.startTime);
+				hourlyTsc.endTime = hourlyTsc.times[hourlyTsc.times.length - 1];
+				hourlyTsc.endHecTime = new HecTime(hourlyTsc.endTime);
+			}
+			else
+			{
+				hourlyTsc = new TimeSeriesContainer();
+			}
+			hourlyTsc.fileName = weeklyTsc.fileName.replace("-Weekly.dss", "-Hourly.dss");
+			DSSPathname pathname = new DSSPathname(weeklyTsc.fullName);
+			pathname.setDPart("");
+			pathname.setEPart("1HOUR");
+			DssFileManagerImpl.getDssFileManager().write(hourlyTsc);
+		}
+		catch (HecMathException e)
+		{
+			LOGGER.log(Level.SEVERE, e, () -> "Failed to convert timeseries: " + weeklyTsc.fullName + " to hourly");
 		}
 		finally
 		{
-			DssFileManagerImpl.getDssFileManager().close(tsc.fileName);
+			DssFileManagerImpl.getDssFileManager().close(weeklyTsc.fileName);
+			if(hourlyTsc != null)
+			{
+				DssFileManagerImpl.getDssFileManager().close(hourlyTsc.fileName);
+			}
 		}
 	}
 
@@ -445,7 +512,8 @@ public class TempTargetPanel extends AbstractForecastPanel
 		_ttTableModel = new TempTargetTableModel();
 		_ttTable.setModel(_ttTableModel);
 		_ttTableModel.addColumn("Date");
-		List<TimeSeriesContainer> temperatureTargetData = temperatureTargetSet.getTimeSeriesData();
+		RunTimeWindow analysisTimeWindow = _fsg.getAnalysisPeriod().getRunTimeWindow();
+		List<TimeSeriesContainer> temperatureTargetData = temperatureTargetSet.getTimeSeriesData(analysisTimeWindow);
 		for(int column = 1; column <= temperatureTargetData.size(); column++)
 		{
 			String columnName = getColumnNameFromFPart(temperatureTargetData.get(column - 1));
@@ -463,7 +531,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 		}
 		TableColumn dateColumn = _ttTable.getColumnModel().getColumn(TempTargetTableModel.DATE_COL_INDEX);
 		dateColumn.setMaxWidth(50);
-		_ttTableModel.setTempTargetSet(temperatureTargetSet);
+		_ttTableModel.setTempTargetSet(temperatureTargetSet, _fsg);
 		_ttTableModel.fireTableStructureChanged();
 	}
 
@@ -522,6 +590,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 
 		}
 		_topTableRowSelected = row;
+		setModified(false);
 	}
 
 	private void clearPanel()
