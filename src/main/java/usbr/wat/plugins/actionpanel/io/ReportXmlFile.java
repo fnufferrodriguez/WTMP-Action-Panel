@@ -10,6 +10,7 @@ package usbr.wat.plugins.actionpanel.io;
 import java.util.Date;
 import java.util.List;
 
+import com.google.common.flogger.FluentLogger;
 import org.jdom.Document;
 import org.jdom.Element;
 
@@ -163,8 +164,8 @@ public class ReportXmlFile
 	}
 
 	/**
-	 * @param simsElem
-	 * @param watSimulation
+	 * @param parent
+	 * @param info
 	 */
 	private void addSimulationInfo(Element parent, SimulationReportInfo info, int simNumber)
 	{
@@ -196,7 +197,7 @@ public class ReportXmlFile
 
 	/**
 	 * @param parent
-	 * @param modelAlternative
+	 * @param modelAlt
 	 */
 	private static void addModelAltInfo(Element parent,
 			ModelAlternative modelAlt, WatSimulation sim)
@@ -234,23 +235,29 @@ public class ReportXmlFile
 			}
 			runDir = RMAIO.concatPath(runDir, dir);
 		}
-		if ( plugin instanceof CeQualW2Plugin )
+		try
 		{
-			CeQualW2Plugin w2Plugin = (CeQualW2Plugin) plugin;
-			CeQualW2Alt w2Alt = w2Plugin.getAlt(modelAlt);
-			if ( w2Alt != null )
+			if (plugin instanceof CeQualW2Plugin)
 			{
-				ComputeOptions co = new ComputeOptions();
-				co.setRunDirectory(runDir);
-				return w2Alt.getCeQualW2RunPath(co);
+				CeQualW2Plugin w2Plugin = (CeQualW2Plugin) plugin;
+				CeQualW2Alt w2Alt = w2Plugin.getAlt(modelAlt);
+				if (w2Alt != null)
+				{
+					ComputeOptions co = new ComputeOptions();
+					co.setRunDirectory(runDir);
+					return w2Alt.getCeQualW2RunPath(co);
+				}
 			}
 		}
-		
+		catch (NoClassDefFoundError err)
+		{
+			FluentLogger.forEnclosingClass().atWarning().log("Failed to find CeQualW2 plugin");
+		}
 		return runDir;
 	}
 
 	/**
-	 * @param name
+	 * @param simName
 	 * @return
 	 */
 	private String getBaseSimulationName(String simName)
@@ -259,7 +266,7 @@ public class ReportXmlFile
 	}
 
 	/**
-	 * @param root
+	 * @param parent
 	 */
 	private void addProjectInfo(Element parent, String baseSimDir)
 	{

@@ -14,6 +14,8 @@ import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.swing.BorderFactory;
@@ -349,9 +351,53 @@ public abstract class AbstractSimulationPanel extends EnabledJPanel
 	@Override
 	public List<SimulationReportInfo> getSimulationReportInfos()
 	{
-		// TODO Auto-generated method stub
-		System.out.println("getSimulationReportInfos TODO implement me");
-		return null;
+		List<SimulationReportInfo>simInfos = new ArrayList<>();
+		List<WatSimulation> selectedSims = getSelectedSimulations();
+		List<ResultsData> selectedResults = getSelectedResults();
+		SimulationReportInfo simInfo;
+		WatSimulation sim;
+		ResultsData results;
+		for (int i = 0;i < selectedSims.size(); i++ )
+		{
+			sim = selectedSims.get(i);
+			simInfo = new SimulationReportInfo();
+			simInfo.setSimulation(sim);
+			simInfo.setSimDssFile(sim.getSimulationDssFile());
+			simInfo.setSimFolder(sim.getSimulationDirectory());
+			simInfo.setName(sim.getName());
+			simInfo.setShortName(sim.getName());
+			simInfo.setDescription(sim.getDescription());
+			simInfo.setLastComputedDate(new Date(sim.getLastComputedDate()).toString());
+			simInfo.setIsSimulation(true);
+
+			simInfos.add(simInfo);
+		}
+		for (int i = 0;i < selectedResults.size(); i++ )
+		{
+			results = selectedResults.get(i);
+			simInfo = new SimulationReportInfo();
+			simInfo.setSimulation(results.getSimulation());
+			simInfo.setSimDssFile(findSimulationDssFile(results.getFolder(),results.getSimulation().getSimulationDssFile()));
+			simInfo.setSimFolder(results.getFolder());
+			String name = results.getSimulation().getName().concat(" - ").concat(results.getName());
+			simInfo.setName(name);
+			simInfo.setShortName(results.getName());
+			simInfo.setDescription(results.getDescription());
+			simInfo.setLastComputedDate(new Date(results.getLastComputedTime()).toString());
+			simInfo.setIsSimulation(false);
+
+			simInfos.add(simInfo);
+		}
+
+
+
+
+		return simInfos;
+	}
+
+	public List<ResultsData> getSelectedResults()
+	{
+		return _simulationTable.getSelectedResults();
 	}
 
 	@Override

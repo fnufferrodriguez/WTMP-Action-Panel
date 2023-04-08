@@ -68,9 +68,14 @@ public class DssPathMap
 			reader.readLine();
 			while ((line = reader.readLine()) != null)
 			{
+				if ( line.trim().isEmpty())
+				{
+					continue;
+				}
 				parts = line.split(",");
 				if (parts == null || parts.length < 7)
 				{
+					LOGGER.atWarning().log("Invalid line found: "+line);
 					continue;
 				}
 				dssPathMapItem = new DssPathMapItem(_sourceDssFile, _sourceDssFPart);

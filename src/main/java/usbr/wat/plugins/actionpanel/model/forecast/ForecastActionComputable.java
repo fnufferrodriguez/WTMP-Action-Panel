@@ -171,6 +171,8 @@ public class ForecastActionComputable
 
 		configPath = RMAIO.concatPath(prjDir, TEMP_TARGET_CONFIG_FILE);
 		_tempTargetDssPathMap = new DssPathMap(_sim, configPath);
+		_tempTargetDssPathMap.setSourceDssFile(_ensembleSet.getTemperatureTargetSet().getDssOutputPath().toString());
+
 		if ( !_tempTargetDssPathMap.readDssPathsFile())
 		{
 			return false;
