@@ -20,6 +20,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.SwingConstants;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
@@ -71,6 +73,8 @@ public class SimulationPanel extends AbstractSimulationPanel
 	private ColumnGroup _columnGroup;
 	private RmaJCheckBox _recomputeAllChk;
 	private List<EnsembleSet> _esetsInTable;
+	private RmaJIntegerSetField _ensembleMembersFld;
+	private boolean _enabledCheckBox;
 
 	public SimulationPanel(ActionsWindow parentWindow, ForecastPanel parentPanel)
 	{
@@ -269,11 +273,19 @@ public class SimulationPanel extends AbstractSimulationPanel
 					{
 						return false;
 					}
+					if ( getEditingRow() == row )
+					{
+
+					}
 					if ( obj instanceof String )
 					{
 						String str = (String) obj;
-						return str.length() > 0 ;
-
+						boolean hasData = str.length() > 0;
+						if ( getEditingRow() == row )
+						{
+							return hasData || _enabledCheckBox;
+						}
+						return hasData;
 					}
 				}
 				return column == 3;
@@ -302,7 +314,8 @@ public class SimulationPanel extends AbstractSimulationPanel
 		};
 		_simEnsembleTable.setRowHeight(_simEnsembleTable.getRowHeight()+5);
 		MleHeadRenderer renderer = _simEnsembleTable.setMlHeaderRenderer();
-		setIntegerSetCellEditor(_simEnsembleTable, 3);
+		_ensembleMembersFld = setIntegerSetCellEditor(_simEnsembleTable, 3);
+
 		setIntegerSetCellEditor(_simEnsembleTable, 4);
 		_simEnsembleTable.setTableHeader(new GroupableTableHeader(_simEnsembleTable.getColumnModel()));
 		TableColumnModel cm = _simEnsembleTable.getColumnModel();
@@ -406,9 +419,46 @@ public class SimulationPanel extends AbstractSimulationPanel
 	 */
 	private void addListeners()
 	{
-		// TODO Auto-generated method stub
-		System.out.println("addListeners TODO implement me");
-		
+		_ensembleMembersFld.getDocument().addDocumentListener(new DocumentListener()
+		{
+
+			@Override
+			public void insertUpdate(DocumentEvent e)
+			{
+				isRowCheckable();
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e)
+			{
+				isRowCheckable();
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e)
+			{
+
+			}
+			private void isRowCheckable()
+			{
+				int editingRow = _simEnsembleTable.getEditingRow();
+				if ( editingRow == -1 )
+				{
+					return;
+				}
+				String txt = _ensembleMembersFld.getText();
+				_enabledCheckBox =  !txt.isEmpty();
+				if ( !_enabledCheckBox )
+				{
+					_simEnsembleTable.setValueAt(Boolean.FALSE, editingRow, 0);
+				}
+				else
+				{
+					_simEnsembleTable.repaint();
+				}
+			}
+		});
+
 	}
 	
 	

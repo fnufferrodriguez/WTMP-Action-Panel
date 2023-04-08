@@ -162,7 +162,7 @@ public class ForecastActionComputable
 
 		_bcDssPathMap = new DssPathMap(_sim, configPath);
 		BcData bcData = _ensembleSet.getBcData();
-		//_bcDssPathMap.setSourceFPart(bcData.getOutputFPart());
+		_bcDssPathMap.setSourceFPart(bcData.getFPart());
 		_bcDssPathMap.setSourceDssFile(Project.getCurrentProject().getAbsolutePath(bcData.getOutputDssFile().toString()));
 		if ( !_bcDssPathMap.readDssPathsFile())
 		{
@@ -205,8 +205,8 @@ public class ForecastActionComputable
 			for(int m = 0; m < _members.length;m ++ )
 			{
 				currentMember = _members[m];
-				_sim.addComputeMessage("Computing Iteration Member "+currentMember);
-				System.out.println("Computing Iteration Member "+currentMember+" for "+_sim );
+				_sim.addComputeMessage("Computing Ensemble Member "+currentMember);
+				System.out.println("Computing Ensemble Member "+currentMember+" for "+_sim );
 				if ( _debug )
 				{
 					JOptionPane.showMessageDialog(Browser.getBrowserFrame(), "Running Pre Scripts for ensemble member "+currentMember);
@@ -326,7 +326,7 @@ public class ForecastActionComputable
 //SensitivitySettings sSettings = _iterSettings.getSensitivitySettings();
 //ComputeSettings computeSettings = sSettings.getPostComputeSettings();
 //return runScripts(computeSettings, iterNum, false);
-		return false;
+		return true; // for now
 	}
 
 	/**
@@ -337,7 +337,7 @@ public class ForecastActionComputable
 //SensitivitySettings sSettings = _iterSettings.getSensitivitySettings();
 //ComputeSettings computeSettings = sSettings.getPreComputeSettings();
 //return runScripts(computeSettings, iterNum, true);
-		return  false;
+		return  true; // for now
 	}
 
 	/**
@@ -1064,7 +1064,7 @@ public class ForecastActionComputable
 		HecTime[] times =  getCopyTimeWindow();
 
 		
-		_sim.addComputeMessage("Copying over iterative DSS records...");
+		_sim.addComputeMessage("Copying over Boundary Condition records...");
 
 
 		//copy the boundary condition data
@@ -1072,6 +1072,7 @@ public class ForecastActionComputable
 		Map<DSSIdentifier, DSSIdentifier> copyMap = _bcDssPathMap.getDssCopyMap();
 		Set<Map.Entry<DSSIdentifier, DSSIdentifier>> copyMapSet = copyMap.entrySet();
 		Iterator<Map.Entry<DSSIdentifier, DSSIdentifier>> copyMapIter = copyMapSet.iterator();
+		String fullPath;
 		while ( copyMapIter.hasNext() )
 		{
 			Map.Entry<DSSIdentifier, DSSIdentifier> copyMapElement = copyMapIter.next();
@@ -1082,6 +1083,8 @@ public class ForecastActionComputable
 				srcDssId.setEndTime(times[1]);
 			}
 			DSSIdentifier destDssId = copyMapElement.getKey();
+			fullPath = Project.getCurrentProject().getAbsolutePath(destDssId.getFileName());
+			destDssId.setFileName(fullPath);
 			copySuccessful |= copyDssRecord(srcDssId, destDssId);
 
 		}
@@ -1107,7 +1110,7 @@ public class ForecastActionComputable
 			{
 				DSSPathname pathname = new DSSPathname();
 				/// save off the source DSS data into the collection dss file with the F part appended with -Forecast
-				srcTsc.fileName = getCollectionsOutputDssFile(getCollectionDssFilename());
+				srcTsc.fileName = getCollectionsOutputDssFile("forecastResults.dss");
 				pathname.setPathname(srcTsc.fullName);
 				//pathname.setCollectionSequence(member);
 				pathname.setFPart(pathname.getFPart()+"-FORECAST");
@@ -1118,7 +1121,14 @@ public class ForecastActionComputable
 		}
 		else
 		{
-			_sim.addErrorMessage("No Data Found for "+srcDssId+" for Time Window "+srcDssId.getStartTime()+" to "+srcDssId.getEndTime());
+			if (srcDssId.getTimeWindow() == null )
+			{
+				_sim.addErrorMessage("No Data Found for " + srcDssId );
+			}
+			else
+			{
+				_sim.addErrorMessage("No Data Found for " + srcDssId + " for Time Window " + srcDssId.getStartTime() + " to " + srcDssId.getEndTime());
+			}
 		}
 		return copySuccessful;
 	}
