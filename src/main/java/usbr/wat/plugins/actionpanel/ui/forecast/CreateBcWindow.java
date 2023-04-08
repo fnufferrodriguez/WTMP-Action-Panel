@@ -9,26 +9,20 @@
 
 package usbr.wat.plugins.actionpanel.ui.forecast;
 
-import java.awt.Button;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Window;
-import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import net.sf.jasperreports.engine.export.Grid;
+
 import rma.swing.ButtonCmdPanel;
-import rma.swing.ButtonCmdPanelListener;
 import rma.swing.RmaInsets;
-import rma.swing.RmaJDescriptionField;
 import rma.swing.RmaJDialog;
 import rma.swing.RmaJTable;
-import rma.swing.RmaJTextField;
-import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.model.forecast.BcData;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.MeteorlogicData;
@@ -36,15 +30,17 @@ import usbr.wat.plugins.actionpanel.model.forecast.OperationsData;
 
 public class CreateBcWindow extends RmaJDialog
 {
+	private final ForecastSimGroup _fsg;
 	private ButtonCmdPanel _cmdPanel;
 	private RmaJTable _opsTable;
 	private RmaJTable _metTable;
 	private boolean _canceled;
 	private JLabel _infoLabel;
 
-	public CreateBcWindow(Window parent)
+	public CreateBcWindow(ForecastSimGroup fsg, Window parent)
 	{
 		super(parent, "Create Boundary Conditions", true);
+		_fsg = fsg;
 		buildControls();
 		addListeners();
 		pack();

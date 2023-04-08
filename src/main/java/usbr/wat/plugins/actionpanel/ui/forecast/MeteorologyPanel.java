@@ -13,11 +13,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 import java.util.stream.Collectors;
 
@@ -27,23 +24,14 @@ import com.google.common.flogger.FluentLogger;
 import com.rma.io.FileManagerImpl;
 import com.rma.io.RmaFile;
 import com.rma.model.Project;
-import hec.io.HecFile;
-import hec2.model.DataLocation;
-import hec2.plugin.model.ModelAlternative;
-import hec2.wat.model.WatSimulation;
-import hec2.wat.plugin.SimpleWatPlugin;
-import hec2.wat.plugin.WatPlugin;
-import hec2.wat.plugin.WatPluginManager;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
-import usbr.wat.plugins.actionpanel.model.forecast.MetData;
 import usbr.wat.plugins.actionpanel.model.forecast.MeteorlogicData;
-import usbr.wat.plugins.actionpanel.ui.NavPlotPanel;
-import usbr.wat.plugins.actionpanel.ui.NavPlotPanel2;
+import usbr.wat.plugins.actionpanel.ui.MetPlotPanel;
 
 /**
  * @author mark
@@ -55,7 +43,7 @@ public class MeteorologyPanel extends AbstractForecastPanel
 	private static final String CONFIG_FILE = "shared/config/met_editor.config";
 	private RmaJTable _metInfoTable;
 	private JButton _importButton;
-	private NavPlotPanel2 _plotPanel;
+	private MetPlotPanel _plotPanel;
 	private ForecastSimGroup _fsg;
 
 	/**
@@ -110,7 +98,7 @@ public class MeteorologyPanel extends AbstractForecastPanel
 		gbc.insets    = RmaInsets.INSETS5505;
 		lowerPanel.add(_importButton, gbc);
 		
-		_plotPanel = new NavPlotPanel2();
+		_plotPanel = new MetPlotPanel();
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;

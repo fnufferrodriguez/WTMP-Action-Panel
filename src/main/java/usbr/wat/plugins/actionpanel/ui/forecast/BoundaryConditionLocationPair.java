@@ -1,0 +1,46 @@
+package usbr.wat.plugins.actionpanel.ui.forecast;
+
+import hec.heclib.dss.DSSPathname;
+
+public final class BoundaryConditionLocationPair
+{
+    private String _location;
+    private String _parameter;
+    private DSSPathname _dssPath;
+
+    public String getLocation()
+    {
+        return _location;
+    }
+
+    public String getParameter()
+    {
+        return _parameter;
+    }
+
+    public DSSPathname getDssPath()
+    {
+        return _dssPath;
+    }
+
+    public void setLocation(String location)
+    {
+        _location = location;
+    }
+
+    public void setParameter(String parameter)
+    {
+        _parameter = parameter;
+    }
+
+    public void setDssPath(DSSPathname dssPath)
+    {
+        _dssPath = dssPath;
+    }
+
+    @Override
+    public String toString()
+    {
+        return _location + " - " + _parameter;
+    }
+}

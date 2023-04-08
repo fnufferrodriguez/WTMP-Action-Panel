@@ -25,13 +25,12 @@ import hec2.wat.model.WatAnalysisPeriod;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
-import rma.swing.table.RmaTableModel;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.model.forecast.BcData;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.MeteorlogicData;
 import usbr.wat.plugins.actionpanel.model.forecast.OperationsData;
-import usbr.wat.plugins.actionpanel.ui.NavPlotPanel;
+import usbr.wat.plugins.actionpanel.ui.BoundaryConditionPlotPanel;
 
 /**
  * @author mark
@@ -43,7 +42,7 @@ public class BcPanel extends AbstractForecastPanel
 	private static final Logger LOGGER = Logger.getLogger(BcPanel.class.getName());
 	private RmaJTable _bcInfoTable;
 	private JButton _createButton;
-	private NavPlotPanel _plotPanel;
+	private BoundaryConditionPlotPanel _plotPanel;
 	private ForecastSimGroup _fsg;
 
 	/**
@@ -96,7 +95,7 @@ public class BcPanel extends AbstractForecastPanel
 		gbc.insets    = RmaInsets.INSETS5505;
 		lowerPanel.add(_createButton, gbc);
 		
-		_plotPanel = new NavPlotPanel();
+		_plotPanel = new BoundaryConditionPlotPanel();
 		_plotPanel.getPlotPanel().buildDefaultComponents();
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
@@ -118,7 +117,7 @@ public class BcPanel extends AbstractForecastPanel
 
 	private void createBcAction()
 	{
-		CreateBcWindow dlg = new CreateBcWindow(ActionPanelPlugin.getInstance().getActionsWindow());
+		CreateBcWindow dlg = new CreateBcWindow(_fsg, ActionPanelPlugin.getInstance().getActionsWindow());
 		dlg.fillForm(_fsg);
 		dlg.setVisible(true);
 		if ( dlg.isCanceled())
@@ -127,7 +126,6 @@ public class BcPanel extends AbstractForecastPanel
 		}
 		List<BcData> bcDataList = dlg.getBcData();
 		ForecastTable bcTable = getTableForPanel();
-		bcTable.clearCells();
 		try
 		{
 			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -269,12 +267,11 @@ public class BcPanel extends AbstractForecastPanel
 				row.add(data.get(i));
 				table.appendRow(row);
 			}
-			fillNavPanel();
+			if(!data.isEmpty())
+			{
+				_plotPanel.fillPanel(_fsg, data.get(0));
+			}
 		}
-	}
-
-	private void fillNavPanel()
-	{
 	}
 
 	@Override
@@ -289,10 +286,9 @@ public class BcPanel extends AbstractForecastPanel
 				BcData bcData = (BcData) table.getValueAt(selRow, 0);
 				Vector<String> row = new Vector<>();
 				row.add(bcData.getName());
-
 				_bcInfoTable.appendRow(row);
+				_plotPanel.fillPanel(_fsg, bcData);
 			}
 		}
 	}
-
 }
