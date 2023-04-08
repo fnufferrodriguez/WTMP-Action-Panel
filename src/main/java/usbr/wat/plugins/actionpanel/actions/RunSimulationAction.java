@@ -26,6 +26,7 @@ import usbr.wat.plugins.actionpanel.model.ActionComputable;
 import usbr.wat.plugins.actionpanel.model.IterationSettings;
 import usbr.wat.plugins.actionpanel.model.PositionAnalysisSettings;
 import usbr.wat.plugins.actionpanel.model.SimulationGroup;
+import usbr.wat.plugins.actionpanel.model.UsbrComputable;
 import usbr.wat.plugins.actionpanel.ui.UsbrPanel;
 
 /**
@@ -65,7 +66,7 @@ public class RunSimulationAction extends AbstractAction
 					"No Simulations Selected", JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
-		List<ActionComputable>computables = new ArrayList<>();
+		List<UsbrComputable>computables = new ArrayList<>();
 		Iterator<WatSimulation> iter = sims.iterator();
 		ActionComputable computable;
 		WatSimulation sim ;

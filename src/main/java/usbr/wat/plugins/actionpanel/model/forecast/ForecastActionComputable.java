@@ -56,13 +56,14 @@ import usbr.wat.plugins.actionpanel.model.BaseComputeSettings;
 import usbr.wat.plugins.actionpanel.model.ComputeSettings;
 import usbr.wat.plugins.actionpanel.model.ComputeType;
 import usbr.wat.plugins.actionpanel.model.ModelAltIterationSettings;
+import usbr.wat.plugins.actionpanel.model.UsbrComputable;
 
 /**
  * @author Mark Ackerman
  *
  */
 public class ForecastActionComputable
-		implements Computable
+		implements UsbrComputable
 {
 
 	private static final String BC_CONFIG_FILE = System.getProperty("WTMP.bcPathsMapFile", "shared/config/bcPathsMap.config");
@@ -158,6 +159,7 @@ public class ForecastActionComputable
 		}
 		String prjDir = Project.getCurrentProject().getProjectDirectory();
 		String configPath = RMAIO.concatPath(prjDir, BC_CONFIG_FILE);
+
 		_bcDssPathMap = new DssPathMap(_sim, configPath);
 		BcData bcData = _ensembleSet.getBcData();
 		//_bcDssPathMap.setSourceFPart(bcData.getOutputFPart());

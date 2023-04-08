@@ -12,6 +12,7 @@ import hec2.wat.client.WatComputeSelectorDialog;
 import hec2.wat.model.WatSimulation;
 
 import usbr.wat.plugins.actionpanel.model.ActionComputable;
+import usbr.wat.plugins.actionpanel.model.UsbrComputable;
 
 /**
  * @author Mark Ackerman
@@ -22,8 +23,8 @@ public class UsgsComputeSelectorDialog extends WatComputeSelectorDialog
 {
 
 	/**
-	 * @param browserFrame
-	 * @param class1
+	 * @param parent
+	 * @param simClass
 	 */
 	public UsgsComputeSelectorDialog(Frame parent,
 			Class<WatSimulation> simClass)
@@ -34,13 +35,13 @@ public class UsgsComputeSelectorDialog extends WatComputeSelectorDialog
 	/**
 	 * @param computables
 	 */
-	public void setSelectedComputables(List<ActionComputable> computables)
+	public void setSelectedComputables(List<UsbrComputable> computables)
 	{
 		if ( computables == null )
 		{
 			return;
 		}
-		ActionComputable computable;
+		UsbrComputable computable;
 		deselectAllTreeNodes();
 		for (int i = 0;i < computables.size(); i++ )
 		{
@@ -48,7 +49,7 @@ public class UsgsComputeSelectorDialog extends WatComputeSelectorDialog
 			selectSimulation(computable);
 		}
 	}
-	private boolean selectSimulation(ActionComputable computable )
+	private boolean selectSimulation(UsbrComputable computable )
 	{
 		if ( computable == null )
 		{
@@ -56,7 +57,7 @@ public class UsgsComputeSelectorDialog extends WatComputeSelectorDialog
 		}
 		return selectSimulation(_root, computable);	
 	}
-	private boolean selectSimulation(DefaultMutableTreeNode parent, ActionComputable computable)
+	private boolean selectSimulation(DefaultMutableTreeNode parent, UsbrComputable computable)
 	{
 		DefaultCheckBoxNode item;
 		boolean selected = false;

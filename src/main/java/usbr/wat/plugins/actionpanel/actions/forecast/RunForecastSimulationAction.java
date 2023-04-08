@@ -24,6 +24,7 @@ import hec2.wat.model.WatSimulation;
 import rma.util.IntArray;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.editors.iterationCompute.UsgsComputeSelectorDialog;
+import usbr.wat.plugins.actionpanel.model.UsbrComputable;
 import usbr.wat.plugins.actionpanel.model.forecast.EnsembleSet;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastActionComputable;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
@@ -94,7 +95,7 @@ public class RunForecastSimulationAction extends AbstractAction
 
 		int ensembleSetRange = Integer.getInteger("Forecast.EnsembleSetRange", 500);
 		int currentEnsembleNum = 0;
-		List<ForecastActionComputable>computables = new ArrayList<>();
+		List<UsbrComputable>computables = new ArrayList<>();
 		Iterator<WatSimulation> simsIter = sims.iterator();
 		Set<Map.Entry<EnsembleSet, int[]>> esetSet = esetMap.entrySet();
 		Iterator<Map.Entry<EnsembleSet, int[]>> esetIter = esetSet.iterator();
@@ -119,7 +120,7 @@ public class RunForecastSimulationAction extends AbstractAction
 			}
 		}
 		computeDlg.setRecomputeAll(recomputeAll);
-		//computeDlg.setSelectedComputables(computables);
+		computeDlg.setSelectedComputables(computables);
 		computeDlg.setSelectOutOfDate(false);
 		computeDlg.setComputeOnOpen(true);
 		computeDlg.setVisible(true);

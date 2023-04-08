@@ -61,7 +61,7 @@ import usbr.wat.plugins.actionpanel.editors.iterationCompute.UsgsComputeSelector
  *
  */
 public class ActionComputable
-		implements Computable
+		implements UsbrComputable
 {
 
 	private static final String SAVE_SUFFEX = "-save";

@@ -17,6 +17,7 @@ import com.rma.client.ObjectChooser;
 import com.rma.model.Manager;
 import com.rma.model.ManagerProxy;
 import com.rma.model.Project;
+import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 
@@ -37,7 +38,7 @@ public class DeleteForecastSimGroupAction extends AbstractAction
 	public void actionPerformed(ActionEvent e)
 	{
 		List<ManagerProxy> simGroups = Project.getCurrentProject().getManagerProxyListForType(ForecastSimGroup.class);
-		ObjectChooser chooser = new ObjectChooser(_parent, true, simGroups, ObjectChooser.DELETE);
+		ObjectChooser chooser = new ObjectChooser(ActionPanelPlugin.getInstance().getActionsWindow(), true, simGroups, ObjectChooser.DELETE);
 		chooser.setTitle("Delete Simulation Groups");
 		chooser.setVisible(true);
 		if ( chooser.isCanceled())
@@ -61,7 +62,7 @@ public class DeleteForecastSimGroupAction extends AbstractAction
 				 prj.removeManager(manager);
 			}
 		}
-		_parent.getForecastPanel().loadSimulationGroupCombo();
+		ActionPanelPlugin.getInstance().getActionsWindow().getForecastPanel().loadSimulationGroupCombo();
 
 	}
 
