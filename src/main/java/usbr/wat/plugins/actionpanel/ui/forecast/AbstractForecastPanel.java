@@ -40,7 +40,7 @@ public abstract class AbstractForecastPanel extends RmaJPanel
 	protected ForecastTable _metTable;
 	protected ForecastTable _bcTable;
 	protected ForecastTable _tempTargetTable;
-	private EnabledJPanel _lowerPanel;
+	protected EnabledJPanel _lowerPanel;
 	
 	private List<ForecastTable>_tables = new ArrayList<>();
 	private EnabledJPanel _tablePanel;
