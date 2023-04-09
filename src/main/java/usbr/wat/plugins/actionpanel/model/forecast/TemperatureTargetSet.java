@@ -138,9 +138,14 @@ public final class TemperatureTargetSet extends NamedType
             int diffInMinutes = (int) Duration.between(sourceStart.atStartOfDay(), analysisStart.atStartOfDay()).toMinutes();
             applyShiftToTsc(tsc, diffInMinutes);
             int trimStartYear = timeWindow.getStartTime().year();
-            int trimEndYear = timeWindow.getEndTime().year();
             if(!tsc.allMissing())
             {
+                int trimEndYear = timeWindow.getEndTime().year();
+                computeTime.set(tsc.times[tsc.times.length-2]);
+                if(tsc.getEndTime().year() == computeTime.year() + 1)
+                {
+                    trimEndYear = computeTime.year();
+                }
                 tsc.trimToTime(new HecTime("01Jan"+trimStartYear, "0000"),new HecTime("31Dec"+trimEndYear, "2400"));
             }
         }
