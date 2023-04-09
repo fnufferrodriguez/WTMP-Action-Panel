@@ -127,8 +127,14 @@ public final class TemperatureTargetSet extends NamedType
         for(TimeSeriesContainer tsc : _timeSeriesData)
         {
             HecTime startTime = timeWindow.getStartTime();
-            LocalDate sourceStart = tsc.getStartTime().getLocalDateTime().toLocalDate();
-            LocalDate analysisStart = startTime.getLocalDateTime().toLocalDate();
+            HecTime computeTime = new HecTime();
+            computeTime.set(tsc.times[1]);
+            LocalDate sourceStart = tsc.getStartTime().getLocalDateTime().toLocalDate().withDayOfYear(1);
+            LocalDate analysisStart = startTime.getLocalDateTime().toLocalDate().withDayOfYear(1);
+            if(tsc.getStartTime().year() == computeTime.year() -1)
+            {
+                analysisStart = analysisStart.minusYears(1);
+            }
             int diffInMinutes = (int) Duration.between(sourceStart.atStartOfDay(), analysisStart.atStartOfDay()).toMinutes();
             applyShiftToTsc(tsc, diffInMinutes);
             int trimStartYear = timeWindow.getStartTime().year();
