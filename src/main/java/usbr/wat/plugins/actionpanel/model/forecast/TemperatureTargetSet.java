@@ -278,4 +278,27 @@ public final class TemperatureTargetSet extends NamedType
         return _dssOutputPath;
     }
 
+    /**
+     *
+     * @return the f-part string after the | delimiter. For example: "C:000001|TIER 2" will return "TIER 2". If There is no
+     * | delimiter, the whole f-part is returned.
+     */
+    public String getFPartWithoutCollection()
+    {
+        String retVal = "";
+        if(!_dssPathNames.isEmpty())
+        {
+            retVal = _dssPathNames.get(0).getFPart();
+            if(retVal.contains("|"))
+            {
+                String[] split = retVal.split("\\|");
+                if(split.length > 1)
+                {
+                    retVal = split[1];
+                }
+            }
+        }
+        return retVal;
+    }
+
 }
