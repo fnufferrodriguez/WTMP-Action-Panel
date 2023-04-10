@@ -46,6 +46,7 @@ import rma.swing.table.RmaTableModel;
 import rma.util.RMAConst;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
+import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetTimeStep;
 import usbr.wat.plugins.actionpanel.ui.forecast.AbstractForecastPanel;
 import usbr.wat.plugins.actionpanel.ui.forecast.ForecastPanel;
 
@@ -333,10 +334,8 @@ public class TempTargetPanel extends AbstractForecastPanel
 			pathname.setDPart("");
 			tsc.fullName = pathname.getPathname();
 			retVal.add(pathname);
-			String weeklyFileName = fileName.replace(".dss", "-Weekly.dss");
-			String hourlyFileName = fileName.replace(".dss", "-Hourly.dss");
-			saveTimeSeries(tsc, weeklyFileName, hourlyFileName);
-			tempTargetSet.setDssOutputPath(Paths.get(hourlyFileName));
+			saveTimeSeries(tsc, fileName);
+			tempTargetSet.setDssOutputPath(Paths.get(fileName));
 		}
 		return retVal;
 	}
@@ -363,7 +362,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 		String forecastSimGroupDirectory = getSimGroupDirectory(simGrp);
 		String delim = "/";
 		String fileName = forecastSimGroupDirectory + delim + tempTargetSet.getName() +".dss";
-		tempTargetSet.setFilePath(Paths.get(fileName));
+		tempTargetSet.setDssSourcePath(Paths.get(fileName));
 		for(int row=0; row < _ttTableModel.getRowCount(); row++)
 		{
 			TempTargetRowData rowData = _ttTableModel.getTempTargetRowData(row);
@@ -375,7 +374,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 			DSSPathname pathname = new DSSPathname();
 			pathname.setBPart(tempTargetSet.getName());
 			pathname.setCPart("TEMP-WATER-TARGET");
-			pathname.setEPart("1WEEK");
+			pathname.setEPart(TemperatureTargetTimeStep.REGULAR_WEEKLY.toString());
 			String leadingString = getLeadingString(col);
 			pathname.setFPart(leadingString + col + "|USER-DEFINED");
 			tsc.fullName = pathname.getPathname();
@@ -395,11 +394,9 @@ public class TempTargetPanel extends AbstractForecastPanel
 			tsc.times = times;
 			tsc.values = getUserDefinedValues(col);
 			tsc.numberValues = tsc.values.length;
-			String weeklyFileName = fileName.replace(".dss", "-Weekly.dss");
-			String hourlyFileName = fileName.replace(".dss", "-Hourly.dss");
-			saveTimeSeries(tsc, weeklyFileName, hourlyFileName);
-			tempTargetSet.setDssOutputPath(Paths.get(hourlyFileName));
-			tempTargetSet.setFilePath(Paths.get(Project.getCurrentProject().getRelativePath(weeklyFileName)));
+			saveTimeSeries(tsc, fileName);
+			tempTargetSet.setDssOutputPath(Paths.get(Project.getCurrentProject().getRelativePath(fileName)));
+			tempTargetSet.setDssSourcePath(Paths.get(Project.getCurrentProject().getRelativePath(fileName)));
 			retVal.add(pathname);
 		}
 		return retVal;
@@ -431,17 +428,17 @@ public class TempTargetPanel extends AbstractForecastPanel
 		return leadingString;
 	}
 
-	private void saveTimeSeries(TimeSeriesContainer weeklyTsc, String weeklyFileName, String hourlyFileName)
+	private void saveTimeSeries(TimeSeriesContainer weeklyTsc, String fileName)
 	{
 		TimeSeriesContainer hourlyTsc = null;
 		try
 		{
-			weeklyTsc.fileName = Project.getCurrentProject().getAbsolutePath(weeklyFileName);
+			weeklyTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
 			DssFileManagerImpl.getDssFileManager().write(weeklyTsc);
 			if(!weeklyTsc.allMissing())
 			{
 				TimeSeriesMath timeSeriesMath = new TimeSeriesMath(weeklyTsc);
-				HecMath hecMath = timeSeriesMath.interpolateDataAtRegularInterval("1HOUR", "0M");
+				HecMath hecMath = timeSeriesMath.interpolateDataAtRegularInterval(TemperatureTargetTimeStep.REGULAR_HOURLY.toString(), "0M");
 				hourlyTsc = (TimeSeriesContainer) hecMath.getData();
 				hourlyTsc.startTime = hourlyTsc.times[0];
 				hourlyTsc.startHecTime = new HecTime(hourlyTsc.startTime);
@@ -452,10 +449,10 @@ public class TempTargetPanel extends AbstractForecastPanel
 			{
 				hourlyTsc = new TimeSeriesContainer();
 			}
-			hourlyTsc.fileName = Project.getCurrentProject().getAbsolutePath(hourlyFileName);
+			hourlyTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
 			DSSPathname pathname = new DSSPathname(weeklyTsc.fullName);
 			pathname.setDPart("");
-			pathname.setEPart("1HOUR");
+			pathname.setEPart(TemperatureTargetTimeStep.REGULAR_HOURLY.toString());
 			DssFileManagerImpl.getDssFileManager().write(hourlyTsc);
 		}
 		catch (HecMathException e)

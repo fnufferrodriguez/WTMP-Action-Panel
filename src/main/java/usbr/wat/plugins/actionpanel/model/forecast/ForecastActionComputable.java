@@ -19,7 +19,6 @@ import com.rma.client.Browser;
 import com.rma.io.DssFileManagerImpl;
 import com.rma.io.FileManagerImpl;
 import com.rma.io.RmaFile;
-import com.rma.model.Computable;
 import com.rma.model.ComputeProgressListener;
 import com.rma.model.ComputeProgressListener2;
 import com.rma.model.Project;
@@ -1164,14 +1163,14 @@ public class ForecastActionComputable
 	private boolean copyTempTargetMember(int currentMember)
 	{
 		TemperatureTargetSet ttSet = _ensembleSet.getTemperatureTargetSet();
-		List<DSSPathname> pathnames = ttSet.getDssPathNames();
+		List<DSSPathname> pathnames = ttSet.getDssPathNames(TemperatureTargetTimeStep.REGULAR_HOURLY);
 		if ( pathnames.size() < currentMember )
 		{
 			_sim.addErrorMessage("Temperature Target collection size "+pathnames.size()+" smaller than current member "+currentMember);
 			return false;
 		}
 		DSSPathname pathname = pathnames.get(currentMember);
-		Path filePath = ttSet.getFilePath();
+		Path filePath = ttSet.getDssSourcePath();
 		List<DSSIdentifier> destDssIdentifiers = _tempTargetDssPathMap.getDestDssIdentifiersFor(pathname.getPathname());
 		DSSIdentifier srcDssId = new DSSIdentifier(filePath.toString(),pathname.getPathname());
 		HecTime[] times = getCopyTimeWindow();

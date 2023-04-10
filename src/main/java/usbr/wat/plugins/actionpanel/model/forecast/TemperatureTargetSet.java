@@ -22,10 +22,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -39,7 +36,7 @@ public final class TemperatureTargetSet extends NamedType
     private final List<TimeSeriesContainer> _timeSeriesData = new ArrayList<>();
     private final List<DSSPathname> _dssPathNames = new ArrayList<>();
     private boolean _isUserDefined;
-    private Path _filePath;
+    private Path _dssSourcePath;
     private int _numberOfUserDefinedTempTargets;
     private Path _dssOutputPath;
 
@@ -54,7 +51,7 @@ public final class TemperatureTargetSet extends NamedType
         XMLUtilities.saveNamedType(myElem, this);
         myElem.setAttribute(USER_DEFINED_ATTRIBUTE_NAME, String.valueOf(_isUserDefined));
         Element filePathElem = new Element(FILE_PATH_ELEM_NAME);
-        filePathElem.setText(_filePath.toString());
+        filePathElem.setText(_dssSourcePath.toString());
         myElem.addContent(filePathElem);
         Element dssOutputPathElem = new Element(OUTPUT_DSS_FILE_ELEM_ID);
         if(_dssOutputPath != null)
@@ -78,11 +75,11 @@ public final class TemperatureTargetSet extends NamedType
     {
         XMLUtilities.loadNamedType(myElem, this);
         _isUserDefined = Boolean.parseBoolean(myElem.getAttribute(USER_DEFINED_ATTRIBUTE_NAME).getValue());
-        _filePath = null;
+        _dssSourcePath = null;
         Element filePathElem = myElem.getChild(FILE_PATH_ELEM_NAME);
         if(filePathElem != null && filePathElem.getText() != null)
         {
-            _filePath = Paths.get(filePathElem.getText());
+            _dssSourcePath = Paths.get(filePathElem.getText());
         }
         Element outputDssFileElem = myElem.getChild(OUTPUT_DSS_FILE_ELEM_ID);
         if(outputDssFileElem != null)
@@ -156,9 +153,9 @@ public final class TemperatureTargetSet extends NamedType
         return _isUserDefined;
     }
 
-    public Path getFilePath()
+    public Path getDssSourcePath()
     {
-        return _filePath;
+        return _dssSourcePath;
     }
 
     public void setUserDefined(boolean userDefined)
@@ -166,9 +163,9 @@ public final class TemperatureTargetSet extends NamedType
         _isUserDefined = userDefined;
     }
 
-    public void setFilePath(Path filePath)
+    public void setDssSourcePath(Path filePath)
     {
-        _filePath = filePath;
+        _dssSourcePath = filePath;
     }
 
     public void setDssPathNames(List<DSSPathname> dssPathNames)
@@ -176,15 +173,20 @@ public final class TemperatureTargetSet extends NamedType
         _dssPathNames.clear();
         _dssPathNames.addAll(dssPathNames);
     }
-    public List<DSSPathname>getDssPathNames()
+    public List<DSSPathname> getDssPathNames(TemperatureTargetTimeStep timeStep)
     {
-        return _dssPathNames;
+        List<DSSPathname> retVal = new ArrayList<>(_dssPathNames);
+        for(DSSPathname pathname : retVal)
+        {
+            pathname.setEPart(timeStep.toString());
+        }
+        return retVal;
     }
 
     private void loadTimeSeriesData()
     {
         _timeSeriesData.clear();
-        if(_isUserDefined && _filePath == null)
+        if(_isUserDefined && _dssSourcePath == null)
         {
             for(int i=1; i <= _numberOfUserDefinedTempTargets; i++)
             {
@@ -212,7 +214,7 @@ public final class TemperatureTargetSet extends NamedType
     private TimeSeriesContainer buildTsFromPathname(DSSPathname pathname)
     {
         DSSIdentifier dssIdentifier = new DSSIdentifier();
-        dssIdentifier.setFileName(Project.getCurrentProject().getAbsolutePath(_filePath.toString()));
+        dssIdentifier.setFileName(Project.getCurrentProject().getAbsolutePath(_dssSourcePath.toString()));
         dssIdentifier.setDSSPath(pathname.getPathname());
         return DssFileManagerImpl.getDssFileManager().readTS(dssIdentifier, true);
     }

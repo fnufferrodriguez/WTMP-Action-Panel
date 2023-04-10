@@ -394,7 +394,7 @@ public final class TempTargetImportDialog extends RmaJDialog
                         temperatureTargetSet.setName(name.toString());
                         temperatureTargetSet.setDescription(_descriptionFieldImport.getText());
                         temperatureTargetSet.setUserDefined(false);
-                        temperatureTargetSet.setFilePath(Paths.get(_importFileChooserField.getText()));
+                        temperatureTargetSet.setDssSourcePath(Paths.get(_importFileChooserField.getText()));
                         temperatureTargetSet.setModified(true);
                     }
                     retVal.add(temperatureTargetSet);
