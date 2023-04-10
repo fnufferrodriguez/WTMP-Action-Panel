@@ -198,15 +198,21 @@ public class DssPathMap
 		}
 		DssPathMapItem dssItem;
 		DSSIdentifier destDssId;
+		String srcDssItemPath;
 		for (int i = 0;i < _dssPathMapList.size(); i++ )
 		{
 			dssItem = _dssPathMapList.get(i);
-			srcDssPath = dssItem.getSrcDssPath();
-			if (DssPathMapItem.dssPathsEqual(srcDssPath, dssItem.getDestDssPath(i)))
+			srcDssItemPath = dssItem.getSrcDssPath();
+			if ( DssPathMapItem.dssPathsEqual(srcDssItemPath, srcDssPath))
 			{
-				destDssId = new DSSIdentifier(dssItem.getDestDssFile(i), dssItem.getDestDssPath(i));
-				destDssIds.add(destDssId);
-
+				for(int j = 0;j < dssItem.getNumberOfDests(); j++ )
+				{
+					destDssId = new DSSIdentifier(dssItem.getDestDssFile(j), dssItem.getDestDssPath(j));
+					if ( !destDssIds.contains(destDssId))
+					{
+						destDssIds.add(destDssId);
+					}
+				}
 			}
 		}
 		return destDssIds;

@@ -19,6 +19,7 @@ import com.rma.client.Browser;
 import com.rma.io.DssFileManagerImpl;
 import com.rma.io.FileManagerImpl;
 import com.rma.io.RmaFile;
+import com.rma.model.Computable;
 import com.rma.model.ComputeProgressListener;
 import com.rma.model.ComputeProgressListener2;
 import com.rma.model.Project;
@@ -171,6 +172,7 @@ public class ForecastActionComputable
 		configPath = RMAIO.concatPath(prjDir, TEMP_TARGET_CONFIG_FILE);
 		_tempTargetDssPathMap = new DssPathMap(_sim, configPath);
 		_tempTargetDssPathMap.setSourceDssFile(_ensembleSet.getTemperatureTargetSet().getDssOutputPath().toString());
+		//_tempTargetDssPathMap.setSourceFPart(_ensembleSet.getTemperatureTargetSet().getFPart());
 
 		if ( !_tempTargetDssPathMap.readDssPathsFile())
 		{
@@ -722,6 +724,20 @@ public class ForecastActionComputable
 					pathsRenamed.add(dssId);
 				}
 			}
+			for(int d = 0;d < dataLocs.size(); d++ )
+			{
+				dataLoc = dataLocs.get(d);
+				dssId = tempTargetDssPathMap.getDSSIdentifierFor(dataLoc);
+				if ( dssId == null || dssId.getDSSPath() == null || dssId.getDSSPath().isEmpty() )
+				{
+					continue;
+				}
+				dssId = saveDssPath(dataLoc);
+				if ( dssId != null )
+				{
+					pathsRenamed.add(dssId);
+				}
+			}
 		}
 		_sim.addComputeMessage("Saved "+pathsRenamed.size()+" DSS records ...");
 		return pathsRenamed;
@@ -1105,7 +1121,7 @@ public class ForecastActionComputable
 			if ( rv != 0 )
 			{
 				copySuccessful= false;
-				Logger.getLogger(ForecastActionComputable.class.getName()).warning("Failed to write DSS record for "+destDssId+" to "+srcTsc.fileName+" : "+srcTsc.fullName+" rv="+rv);
+				Logger.getLogger(ForecastActionComputable.class.getName()).warning("Failed to write DSS record for "+destDssId+" to "+srcDssId.getFileName()+" : "+srcDssId.getDSSPath()+" rv="+rv);
 				_sim.addErrorMessage("Falied to write DSS record for "+destDssId+" to "+srcTsc.fileName+" : "+srcTsc.fullName+" rv="+rv);
 			}
 			else
@@ -1169,16 +1185,32 @@ public class ForecastActionComputable
 			_sim.addErrorMessage("Temperature Target collection size "+pathnames.size()+" smaller than current member "+currentMember);
 			return false;
 		}
+		if ( currentMember > 0 )
+		{
+			currentMember--;
+		}
 		DSSPathname pathname = pathnames.get(currentMember);
-		Path filePath = ttSet.getDssSourcePath();
+//tmp workaround...
+pathname = new DSSPathname(pathname.getPathname());
+pathname.setEPart("1HOUR");
+
+		Path filePath = ttSet.getDssOutputPath();
+
 		List<DSSIdentifier> destDssIdentifiers = _tempTargetDssPathMap.getDestDssIdentifiersFor(pathname.getPathname());
-		DSSIdentifier srcDssId = new DSSIdentifier(filePath.toString(),pathname.getPathname());
+
+		DSSIdentifier srcDssId = new DSSIdentifier(Project.getCurrentProject().getAbsolutePath(filePath.toString()),pathname.getPathname());
 		HecTime[] times = getCopyTimeWindow();
 		boolean copySuccessful = true;
 		DSSIdentifier destDssId;
+		if ( destDssIdentifiers.size() == 0 )
+		{
+			_sim.addWarningMessage("No Temperature Targets were found to copy");
+			return true;
+		}
 		for (int i = 0;i < destDssIdentifiers.size(); i ++ )
 		{
 			destDssId = destDssIdentifiers.get(i);
+			destDssId.setFileName(Project.getCurrentProject().getAbsolutePath(destDssId.getFileName()));
 			_sim.addComputeMessage("Copying Temperature Target pathname from "+srcDssId+" to " + destDssId);
 			copySuccessful |= copyDssRecord(srcDssId, destDssId);
 		}

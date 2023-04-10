@@ -134,7 +134,11 @@ public class DssPathMapItem extends NamedType
 
 	public static boolean dssPathsEqual(String path1, String path2)
 	{
-		return dssPathsEqual(new DSSPathname(path1), new DSSPathname(path2));
+		DSSPathname src1 = new DSSPathname(path1);
+		src1.setCollectionSequence(null);
+		DSSPathname src2 = new DSSPathname(path2);
+		src2.setCollectionSequence(null);
+		return dssPathsEqual(src1, src2);
 	}
 
 	public static boolean dssPathsEqual(DSSPathname path1, DSSPathname path2)
