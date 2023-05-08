@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,6 +22,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.swing.JButton;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.table.TableColumn;
@@ -30,14 +30,12 @@ import javax.swing.table.TableColumnModel;
 
 import com.rma.io.DssFileManagerImpl;
 import com.rma.model.Project;
-import hec.data.Units;
 import hec.heclib.dss.DSSPathname;
-import hec.heclib.dss.HecTimeSeriesBase;
-import hec.heclib.util.HecTime;
 import hec.hecmath.HecMath;
 import hec.hecmath.HecMathException;
 import hec.hecmath.TimeSeriesMath;
 import hec.io.TimeSeriesContainer;
+import hec.io.impl.StoreOptionImpl;
 import hec.model.RunTimeWindow;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
@@ -76,7 +74,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 
 	private void addPanelListeners()
 	{
-		_createButton.addActionListener(e -> new TempTargetImportDialog(SwingUtilities.getWindowAncestor(this), getExistingSetNames(), this::tempTargetSetsSelected));
+		_createButton.addActionListener(e -> new TempTargetImportDialog(SwingUtilities.getWindowAncestor(this), getExistingSetNames(), new TempTargetConsumer(this)));
 	}
 
 	private List<String> getExistingSetNames()
@@ -93,9 +91,10 @@ public class TempTargetPanel extends AbstractForecastPanel
 		return retVal;
 	}
 
-	private void tempTargetSetsSelected(List<TemperatureTargetSet> tempTargetSets)
+	void tempTargetSetsSelected(List<TemperatureTargetSet> tempTargetSets) throws TempTargetSaveFailedException
 	{
 		RmaTableModel upperTableModel = (RmaTableModel) getTableForPanel().getModel();
+		initializeSaveOfNewTempTargets(tempTargetSets);
 		for(TemperatureTargetSet tempTargetSet : tempTargetSets)
 		{
 			Integer rowThatContainsName = getRowThatContainsName(upperTableModel, tempTargetSet);
@@ -116,16 +115,18 @@ public class TempTargetPanel extends AbstractForecastPanel
 			fillTempTargetInfoTable(selectedSet);
 			fillTempTargetTable(selectedSet);
 		}
-		initializeSaveOfNewTempTargets(tempTargetSets);
 	}
 
-	private void initializeSaveOfNewTempTargets(List<TemperatureTargetSet> tempTargetSets)
+	private void initializeSaveOfNewTempTargets(List<TemperatureTargetSet> tempTargetSets) throws TempTargetSaveFailedException
 	{
 		if(_fsg != null && tempTargetSets != null && !tempTargetSets.isEmpty())
 		{
 			List<TemperatureTargetSet> sets = new ArrayList<>(_fsg.getTemperatureTargetSets());
 			for (TemperatureTargetSet set : tempTargetSets)
 			{
+				List<DSSPathname> pathNames = saveImported(set, _fsg);
+				updatePathNamesInSimGroupList(pathNames);
+				set.setDssPathNames(pathNames);
 				if (!sets.contains(set))
 				{
 					sets.add(set);
@@ -135,12 +136,6 @@ public class TempTargetPanel extends AbstractForecastPanel
 					int existingSetIndex = sets.indexOf(set);
 					sets.add(existingSetIndex, set);
 					sets.remove(existingSetIndex +1);
-				}
-				if(!set.isUserDefined())
-				{
-					List<DSSPathname> pathNames = saveImported(set, _fsg);
-					updatePathNamesInSimGroupList(pathNames);
-					set.setDssPathNames(pathNames);
 				}
 			}
 			_fsg.setTemperatureTargetSets(sets);
@@ -245,7 +240,17 @@ public class TempTargetPanel extends AbstractForecastPanel
 			}
 			if(_selectedTempTargetSet.isUserDefined())
 			{
-				List<DSSPathname> pathNames = saveUserDefinedTable(_selectedTempTargetSet, simGrp);
+				List<DSSPathname> pathNames = null;
+				try
+				{
+					pathNames = saveUserDefinedTable(_selectedTempTargetSet, simGrp);
+				}
+				catch (TempTargetSaveFailedException e)
+				{
+					JOptionPane.showMessageDialog(this, e.getMessage(),
+							"DSS Write Failed", JOptionPane.ERROR_MESSAGE);
+					LOGGER.log(Level.CONFIG, e, () -> "Temp Target save failed: " + e.getMessage());
+				}
 				updatePathNamesInSimGroupList(pathNames);
 				_selectedTempTargetSet.setDssPathNames(pathNames);
 			}
@@ -320,7 +325,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 		}
 	}
 
-	private List<DSSPathname> saveImported(TemperatureTargetSet tempTargetSet, ForecastSimGroup simGrp)
+	private List<DSSPathname> saveImported(TemperatureTargetSet tempTargetSet, ForecastSimGroup simGrp) throws TempTargetSaveFailedException
 	{
 		List<TimeSeriesContainer> timeSeriesData = tempTargetSet.getTimeSeriesData(simGrp.getAnalysisPeriod().getRunTimeWindow());
 		List<DSSPathname> retVal = new ArrayList<>();
@@ -355,7 +360,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 		return forecastSimGroupDirectory;
 	}
 
-	private List<DSSPathname> saveUserDefinedTable(TemperatureTargetSet tempTargetSet, ForecastSimGroup simGrp)
+	private List<DSSPathname> saveUserDefinedTable(TemperatureTargetSet tempTargetSet, ForecastSimGroup simGrp) throws TempTargetSaveFailedException
 	{
 		List<DSSPathname> retVal = new ArrayList<>();
 		int[] times = new int[_ttTableModel.getRowCount()];
@@ -370,80 +375,52 @@ public class TempTargetPanel extends AbstractForecastPanel
 		}
 		for(int col=1; col < _ttTableModel.getColumnCount(); col++)
 		{
-			TimeSeriesContainer tsc = new TimeSeriesContainer();
-			DSSPathname pathname = new DSSPathname();
-			pathname.setBPart(tempTargetSet.getName());
-			pathname.setCPart("TEMP-WATER-TARGET");
-			pathname.setEPart(TemperatureTargetTimeStep.REGULAR_WEEKLY.toString());
-			String leadingString = getLeadingString(col);
-			pathname.setFPart(leadingString + col + "|USER-DEFINED");
-			tsc.fullName = pathname.getPathname();
-			ZoneId dataZoneId = ZoneId.systemDefault();
-			tsc.setTimeZoneID(dataZoneId.getId());
-			tsc.locationTimezone = dataZoneId.getId();
-			tsc.units = Units.getBestMatch("C");
-			tsc.interval = HecTimeSeriesBase.getIntervalFromEPart(pathname.getEPart());
-			tsc.type = "INST-VAL";
-			tsc.parameter = pathname.getCPart();
-			tsc.location = pathname.bPart();
-			tsc.version = pathname.fPart();
+			tempTargetSet.getTimeSeriesData(_fsg.getAnalysisPeriod().getRunTimeWindow());
+			TimeSeriesContainer tsc = TemperatureTargetSet.buildTemplateUserDefinedTSContainer(col, tempTargetSet);
 			tsc.startTime = times[0];
 			tsc.endTime = times[times.length-1];
 			tsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
-			tsc.setStoreAsDoubles(true);
 			tsc.times = times;
 			tsc.values = getUserDefinedValues(col);
 			tsc.numberValues = tsc.values.length;
+			tsc.startHecTime = tsc.getHecTime(0);
+			tsc.endHecTime = tsc.getHecTime(times.length-1);
 			saveTimeSeries(tsc, fileName);
 			tempTargetSet.setDssOutputPath(Paths.get(Project.getCurrentProject().getRelativePath(fileName)));
 			tempTargetSet.setDssSourcePath(Paths.get(Project.getCurrentProject().getRelativePath(fileName)));
-			retVal.add(pathname);
+			retVal.add(new DSSPathname(tsc.fullName));
 		}
 		return retVal;
 	}
 
-	private String getLeadingString(int col)
-	{
-		String leadingString = "C:00000";
-		if(col > 9 && col < 100)
-		{
-			leadingString = "C:0000";
-		}
-		else if(col > 99 && col < 1000)
-		{
-			leadingString = "C:000";
-		}
-		else if(col > 999 && col < 10000)
-		{
-			leadingString = "C:00";
-		}
-		else if(col > 9999 && col < 100000)
-		{
-			leadingString = "C:0";
-		}
-		else if(col > 99999 && col < 1000000)
-		{
-			leadingString = "C:";
-		}
-		return leadingString;
-	}
-
-	private void saveTimeSeries(TimeSeriesContainer weeklyTsc, String fileName)
+	private void saveTimeSeries(TimeSeriesContainer weeklyTsc, String fileName) throws TempTargetSaveFailedException
 	{
 		TimeSeriesContainer hourlyTsc = null;
+		weeklyTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
+		int[] newTimes = new int[weeklyTsc.times.length];
+		if(weeklyTsc.startHecTime.getLocalDateTime().getMinute() == 1) //if offset of 1 minute happened during shift, undo
+		{
+			for(int i=0; i < newTimes.length; i++)
+			{
+				newTimes[i] = weeklyTsc.times[i] -1;
+			}
+			weeklyTsc.times = newTimes;
+			weeklyTsc.startTime = newTimes[0];
+			weeklyTsc.endTime = newTimes[newTimes.length-1];
+			weeklyTsc.startHecTime = weeklyTsc.getHecTime(0);
+			weeklyTsc.endHecTime = weeklyTsc.getHecTime(newTimes.length-1);
+		}
 		try
 		{
-			weeklyTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
-			DssFileManagerImpl.getDssFileManager().write(weeklyTsc);
 			if(!weeklyTsc.allMissing())
 			{
 				TimeSeriesMath timeSeriesMath = new TimeSeriesMath(weeklyTsc);
 				HecMath hecMath = timeSeriesMath.interpolateDataAtRegularInterval(TemperatureTargetTimeStep.REGULAR_HOURLY.toString(), "0M");
 				hourlyTsc = (TimeSeriesContainer) hecMath.getData();
 				hourlyTsc.startTime = hourlyTsc.times[0];
-				hourlyTsc.startHecTime = new HecTime(hourlyTsc.startTime);
+				hourlyTsc.startHecTime = hourlyTsc.getHecTime(0);
 				hourlyTsc.endTime = hourlyTsc.times[hourlyTsc.times.length - 1];
-				hourlyTsc.endHecTime = new HecTime(hourlyTsc.endTime);
+				hourlyTsc.endHecTime = hourlyTsc.getHecTime(hourlyTsc.numberValues-1);
 			}
 			else
 			{
@@ -453,7 +430,31 @@ public class TempTargetPanel extends AbstractForecastPanel
 			DSSPathname pathname = new DSSPathname(weeklyTsc.fullName);
 			pathname.setDPart("");
 			pathname.setEPart(TemperatureTargetTimeStep.REGULAR_HOURLY.toString());
-			DssFileManagerImpl.getDssFileManager().write(hourlyTsc);
+			hourlyTsc.fullName = pathname.getPathname();
+			int hourlyStatus = DssFileManagerImpl.getDssFileManager().write(hourlyTsc);
+			int weeklyStatus = DssFileManagerImpl.getDssFileManager().writeTS(weeklyTsc, new StoreOptionImpl());
+			String errorSpecified = "";
+			String statusCode = "";
+			if(hourlyStatus != 0 && !hourlyTsc.allMissing())
+			{
+				errorSpecified += hourlyTsc.fullName;
+				statusCode = String.valueOf(hourlyStatus);
+				if(weeklyStatus != 0)
+				{
+					errorSpecified += " and " + weeklyTsc.fullName;
+					statusCode = String.valueOf(weeklyStatus);
+				}
+			}
+			else if (weeklyStatus != 0 && !weeklyTsc.allMissing())
+			{
+				errorSpecified = weeklyTsc.fullName;
+				statusCode = String.valueOf(weeklyStatus);
+			}
+			if(!errorSpecified.isEmpty())
+			{
+				throw new TempTargetSaveFailedException(errorSpecified, weeklyTsc.fileName, statusCode);
+			}
+
 		}
 		catch (HecMathException e)
 		{
@@ -549,7 +550,8 @@ public class TempTargetPanel extends AbstractForecastPanel
 			{
 				String indexNum = split[0];
 				indexNum = indexNum.replace("C:", "");
-				retVal = indexNum.replaceFirst("^0+(?!$)", "");
+				String replaceRegex = "^0+(?!$)";
+				retVal = indexNum.replaceFirst(replaceRegex, "");
 			}
 		}
 		return retVal;

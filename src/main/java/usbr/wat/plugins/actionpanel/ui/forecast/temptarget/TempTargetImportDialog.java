@@ -25,7 +25,12 @@ import rma.swing.table.RmaTableModel;
 import rma.util.RMAFilenameFilter;
 import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
 
-import javax.swing.*;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import java.awt.BorderLayout;
@@ -56,7 +61,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -67,7 +71,7 @@ public final class TempTargetImportDialog extends RmaJDialog
     private static final String IMPORT_PANEL_ID = "IMPORT_PANEL";
     private static final String CREATE_PANEL_ID = "CREATE_PANEL";
     private static final int MAX_NUM_USER_DEFINED_TEMP_TARGETS_IN_SET = 12;
-    private final Consumer<List<TemperatureTargetSet>> _consumeTempTargetSetAction;
+    private final TempTargetConsumer _consumeTempTargetSetAction;
     private final List<String> _existingSetNames;
     private RmaJRadioButton _importFromExistingRadioButton;
     private RmaJRadioButton _createNewRadioButton;
@@ -85,7 +89,7 @@ public final class TempTargetImportDialog extends RmaJDialog
     private RmaJDescriptionField _descriptionFieldImport;
     private RmaJIntegerField _numberTempTargetsField;
 
-    public TempTargetImportDialog(Window parent, List<String> existingSetNames, Consumer<List<TemperatureTargetSet>> consumeTempTargetSetAction)
+    public TempTargetImportDialog(Window parent, List<String> existingSetNames, TempTargetConsumer consumeTempTargetSetAction)
     {
         super(parent, true);
         setTitle("Select Temperature Target Set");
@@ -348,7 +352,10 @@ public final class TempTargetImportDialog extends RmaJDialog
             {
                 List<TemperatureTargetSet> sets = buildTempTargetSets();
                 _consumeTempTargetSetAction.accept(sets);
-                dispose();
+                if(_consumeTempTargetSetAction.wasSuccessful())
+                {
+                    dispose();
+                }
             }
             finally
             {

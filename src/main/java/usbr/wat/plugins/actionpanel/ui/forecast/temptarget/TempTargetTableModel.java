@@ -159,7 +159,7 @@ final class TempTargetTableModel extends RmaTableModel
         {
             //initialize rowData using dates
             TimeSeriesContainer tempTargetTimeSeries = tempTargets.get(0);
-            if(tempTargetTimeSeries.getTimes() != null)
+            if(tempTargetTimeSeries.times != null)
             {
                 for (int time : tempTargetTimeSeries.times)
                 {

@@ -10,7 +10,9 @@ package usbr.wat.plugins.actionpanel.model.forecast;
 import com.rma.io.DssFileManagerImpl;
 import com.rma.model.Project;
 import com.rma.util.XMLUtilities;
+import hec.data.Units;
 import hec.heclib.dss.DSSPathname;
+import hec.heclib.dss.HecTimeSeriesBase;
 import hec.heclib.util.HecTime;
 import hec.heclib.util.HecTimeArray;
 import hec.io.DSSIdentifier;
@@ -29,7 +31,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -117,40 +122,70 @@ public final class TemperatureTargetSet extends NamedType
     {
         if(_isUserDefined || _timeSeriesData.isEmpty())
         {
-            loadTimeSeriesData();
+            loadTimeSeriesData(timeWindow);
         }
-        if(!_timeSeriesData.isEmpty() && _timeSeriesData.get(0).getStartTime().getTimeInMillis() != timeWindow.getStartTime().getTimeInMillis())
+        if(!_isUserDefined && !_timeSeriesData.isEmpty() && _timeSeriesData.get(0).getStartTime().getTimeInMillis() != timeWindow.getStartTime().getTimeInMillis())
         {
             shiftTimeSeriesDataToAnalysisYear(timeWindow);
         }
+        if(timeWindow.getStartTime().year() == 2000)
+        {
+            trimForYear2000();
+        }
         return new ArrayList<>(_timeSeriesData);
+    }
+
+    private void trimForYear2000()
+    {
+        for(TimeSeriesContainer tsc : _timeSeriesData)
+        {
+            if(tsc.startHecTime.year() < 2000 || (tsc.startHecTime.month() ==1 && tsc.startHecTime.day() < 2))
+            {
+                double[] newValArray = Arrays.copyOfRange(tsc.values, 1,tsc.values.length);
+                int[] newTimeArray = Arrays.copyOfRange(tsc.times, 1,tsc.times.length);
+                tsc.values = newValArray;
+                tsc.times = newTimeArray;
+                tsc.numberValues--;
+                tsc.startTime = tsc.times[0];
+                tsc.startHecTime = tsc.getHecTime(0);
+                tsc.endTime = tsc.times[tsc.times.length-1];
+                tsc.endHecTime = tsc.getHecTime(tsc.numberValues - 1);
+            }
+        }
     }
 
     private void shiftTimeSeriesDataToAnalysisYear(RunTimeWindow timeWindow)
     {
         for(TimeSeriesContainer tsc : _timeSeriesData)
         {
-            HecTime startTime = timeWindow.getStartTime();
-            HecTime computeTime = new HecTime();
-            computeTime.set(tsc.times[1]);
-            LocalDate sourceStart = tsc.getStartTime().getLocalDateTime().toLocalDate().withDayOfYear(1);
-            LocalDate analysisStart = startTime.getLocalDateTime().toLocalDate().withDayOfYear(1);
-            if(tsc.getStartTime().year() == computeTime.year() -1)
+            if (tsc.times.length > 1)
             {
-                analysisStart = analysisStart.minusYears(1);
-            }
-            int diffInMinutes = (int) Duration.between(sourceStart.atStartOfDay(), analysisStart.atStartOfDay()).toMinutes();
-            applyShiftToTsc(tsc, diffInMinutes);
-            int trimStartYear = timeWindow.getStartTime().year();
-            if(!tsc.allMissing())
-            {
-                int trimEndYear = timeWindow.getEndTime().year();
-                computeTime.set(tsc.times[tsc.times.length-2]);
-                if(tsc.getEndTime().year() == computeTime.year() + 1)
+                HecTime startTime = timeWindow.getStartTime();
+                HecTime computeTime = new HecTime();
+                computeTime.set(tsc.times[1]);
+                LocalDate sourceStart = tsc.getStartTime().getLocalDateTime().toLocalDate().withDayOfYear(1);
+                LocalDate analysisStart = startTime.getLocalDateTime().toLocalDate().withDayOfYear(1);
+                if(tsc.getStartTime().year() == computeTime.year() -1)
                 {
-                    trimEndYear = computeTime.year();
+                    analysisStart = analysisStart.minusYears(1);
                 }
-                tsc.trimToTime(new HecTime("01Jan"+trimStartYear, "0000"),new HecTime("31Dec"+trimEndYear, "2400"));
+                int diffInMinutes = (int) Duration.between(sourceStart.atStartOfDay(), analysisStart.atStartOfDay()).toMinutes();
+                applyShiftToTsc(tsc, diffInMinutes);
+                int trimStartYear = timeWindow.getStartTime().year();
+                if(!tsc.allMissing())
+                {
+                    int trimEndYear = trimStartYear;
+                    computeTime.set(tsc.times[tsc.times.length-2]);
+                    if(tsc.getEndTime().year() == computeTime.year() + 1)
+                    {
+                        trimEndYear = computeTime.year();
+                    }
+                    tsc.trimToTime(new HecTime("01Jan"+trimStartYear, "0000"),new HecTime("31Dec"+trimEndYear, "2400"));
+                }
+                tsc.startTime = tsc.times[0];
+                tsc.endTime = tsc.times[tsc.times.length-1];
+                tsc.startHecTime = tsc.getHecTime(0);
+                tsc.endHecTime = tsc.getHecTime(0);
             }
         }
     }
@@ -178,7 +213,10 @@ public final class TemperatureTargetSet extends NamedType
     public void setDssPathNames(List<DSSPathname> dssPathNames)
     {
         _dssPathNames.clear();
-        _dssPathNames.addAll(dssPathNames);
+        if(dssPathNames != null)
+        {
+            _dssPathNames.addAll(dssPathNames);
+        }
     }
     public List<DSSPathname> getDssPathNames(TemperatureTargetTimeStep timeStep)
     {
@@ -190,40 +228,66 @@ public final class TemperatureTargetSet extends NamedType
         return retVal;
     }
 
-    private void loadTimeSeriesData()
+    private void loadTimeSeriesData(RunTimeWindow timeWindow)
     {
         _timeSeriesData.clear();
         if(_isUserDefined && _dssSourcePath == null)
         {
             for(int i=1; i <= _numberOfUserDefinedTempTargets; i++)
             {
-                TimeSeriesContainer fixedTscForUserDefined = buildFixedDataForUserDefined();
+                TimeSeriesContainer fixedTscForUserDefined = buildFixedDataForUserDefined(i, timeWindow);
                 _timeSeriesData.add(fixedTscForUserDefined);
             }
         }
         else
         {
+            int i=1;
             for(DSSPathname pathname : _dssPathNames)
             {
-                TimeSeriesContainer tsc = buildTsFromPathname(pathname);
+                TimeSeriesContainer tsc = buildTsFromPathname(i, pathname, timeWindow);
                 if(tsc != null)
                 {
                     if(tsc.allMissing())
                     {
-                        tsc = buildFixedDataForUserDefined();
+                        tsc = buildFixedDataForUserDefined(i, timeWindow);
                     }
                     _timeSeriesData.add(tsc);
                 }
+                i++;
             }
         }
     }
 
-    private TimeSeriesContainer buildTsFromPathname(DSSPathname pathname)
+    private TimeSeriesContainer buildTsFromPathname(int index, DSSPathname pathname, RunTimeWindow timeWindow)
     {
         DSSIdentifier dssIdentifier = new DSSIdentifier();
         dssIdentifier.setFileName(Project.getCurrentProject().getAbsolutePath(_dssSourcePath.toString()));
         dssIdentifier.setDSSPath(pathname.getPathname());
-        return DssFileManagerImpl.getDssFileManager().readTS(dssIdentifier, true);
+        TimeSeriesContainer tsc = DssFileManagerImpl.getDssFileManager().readTS(dssIdentifier, false);
+        if(tsc != null && isUserDefined())
+        {
+            Map<Integer, Double> timeValueMap = new HashMap<>();
+            for(int i=0; i < tsc.numberValues; i++)
+            {
+                timeValueMap.put(tsc.times[i], tsc.values[i]);
+            }
+            TimeSeriesContainer fixedTsc = buildFixedDataForUserDefined(index, timeWindow);
+            tsc.times = fixedTsc.times;
+            tsc.startTime = fixedTsc.startTime;
+            tsc.endTime = fixedTsc.endTime;
+            tsc.startHecTime = fixedTsc.startHecTime;
+            tsc.endHecTime = fixedTsc.endHecTime;
+            tsc.values = fixedTsc.values;
+            for(int i=0; i < tsc.times.length; i++)
+            {
+                Double value = timeValueMap.get(tsc.times[i]);
+                if(value != null)
+                {
+                    tsc.values[i] = value;
+                }
+            }
+        }
+        return tsc;
     }
 
     private void applyShiftToTsc(TimeSeriesContainer tsc, int shift)
@@ -241,14 +305,20 @@ public final class TemperatureTargetSet extends NamedType
         }
     }
 
-    private TimeSeriesContainer buildFixedDataForUserDefined()
+    private TimeSeriesContainer buildFixedDataForUserDefined(int col, RunTimeWindow timeWindow)
     {
-        TimeSeriesContainer tsc = new TimeSeriesContainer();
-        int year = 2020;
-        LocalTime localTime = LocalTime.of(0, 1);
+        TimeSeriesContainer tsc = buildTemplateUserDefinedTSContainer(col, this);
+        int year = timeWindow.getStartTime().year();
+        int hour = year == 2000 ? 1 : 0; // due to dss bug if year 2000 need to start at 01:00 on Jan 2nd
+        LocalTime localTime = LocalTime.of(hour, 0);
         ZoneId zoneId = ZoneId.systemDefault();
-        LocalDate startDate = LocalDate.of(year, 1, 1); // Start date: January 1st, 2020
-        LocalDate endDate = LocalDate.of(year+1, 1, 7); // End date: January 3rd, 2021 (first week)
+        LocalDate startDate = LocalDate.of(year, 1, 1); // Start date: January 1st 2020
+        if(year == 2000) //start at jan 2nd if using year 2000 as workaround dss bug
+        {
+            startDate = startDate.plusDays(1);
+        }
+        LocalDate endDate = startDate.plusYears(1);
+        endDate = endDate.plusWeeks(1);
         int numWeeks = (int) ChronoUnit.WEEKS.between(startDate, endDate);
         LocalDate currentDate = startDate;
         int[] times = new int[numWeeks + 1];
@@ -268,7 +338,37 @@ public final class TemperatureTargetSet extends NamedType
                 .mapToDouble(Double::doubleValue)
                 .toArray();
         tsc.numberValues = nanList.size();
+        tsc.startTime = times[0];
+        tsc.endTime = times[times.length-1];
+        tsc.startHecTime = tsc.getHecTime(0);
+        tsc.endHecTime = tsc.getHecTime(tsc.numberValues-1);
         return tsc;
+    }
+
+    private static String getLeadingString(int col)
+    {
+        String leadingString = "C:00000";
+        if(col > 9 && col < 100)
+        {
+            leadingString = "C:0000";
+        }
+        else if(col > 99 && col < 1000)
+        {
+            leadingString = "C:000";
+        }
+        else if(col > 999 && col < 10000)
+        {
+            leadingString = "C:00";
+        }
+        else if(col > 9999 && col < 100_000)
+        {
+            leadingString = "C:0";
+        }
+        else if(col > 99999 && col < 1_000_000)
+        {
+            leadingString = "C:";
+        }
+        return leadingString;
     }
 
     public void setNumberOfUserDefinedTempTargets(int value)
@@ -308,4 +408,26 @@ public final class TemperatureTargetSet extends NamedType
         return retVal;
     }
 
+    public static TimeSeriesContainer buildTemplateUserDefinedTSContainer(int col, TemperatureTargetSet tempTargetSet)
+    {
+        TimeSeriesContainer tsc = new TimeSeriesContainer();
+        DSSPathname pathname = new DSSPathname();
+        pathname.setBPart(tempTargetSet.getName());
+        pathname.setCPart("TEMP-WATER-TARGET");
+        pathname.setEPart(TemperatureTargetTimeStep.REGULAR_WEEKLY.toString());
+        String leadingString = getLeadingString(col);
+        pathname.setFPart(leadingString + col + "|USER-DEFINED");
+        tsc.fullName = pathname.getPathname().toUpperCase();
+        ZoneId dataZoneId = ZoneId.systemDefault();
+        tsc.setTimeZoneID(dataZoneId.getId());
+        tsc.locationTimezone = dataZoneId.getId();
+        tsc.units = Units.getBestMatch("C");
+        tsc.interval = HecTimeSeriesBase.getIntervalFromEPart(pathname.getEPart());
+        tsc.type = "INST-VAL";
+        tsc.parameter = pathname.getCPart();
+        tsc.location = pathname.bPart();
+        tsc.version = pathname.fPart();
+        tsc.setStoreAsDoubles(true);
+        return tsc;
+    }
 }
