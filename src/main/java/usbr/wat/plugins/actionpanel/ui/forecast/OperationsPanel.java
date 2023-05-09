@@ -15,6 +15,15 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -28,10 +37,15 @@ import com.rma.swing.excel.ExcelTable;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
@@ -229,17 +243,16 @@ public class OperationsPanel extends AbstractForecastPanel
 		Sheet sheet = null;
 		if(opsFilePath.endsWith(".csv"))
 		{
-
 			sheet = readCsv(opsFilePath);
 		}
 		else
 		{
-			try (FileInputStream inputStream = new FileInputStream(opsFilePath))
+			String csvString = convertXlsxToCsv(opsFilePath);
+			try (BufferedReader reader = new BufferedReader(new StringReader(csvString)))
 			{
-				Workbook workbook = WorkbookFactory.create(inputStream);
-				sheet = workbook.getSheetAt(0);
+				sheet = readIntoSheet(reader);
 			}
-			catch (IOException | InvalidFormatException e)
+			catch (IOException e)
 			{
 				LOGGER.log(Level.SEVERE, e, () -> "Failed to read file: " + opsFilePath);
 			}
@@ -268,28 +281,7 @@ public class OperationsPanel extends AbstractForecastPanel
 		Sheet retVal = null;
 		try(BufferedReader reader = new BufferedReader(new FileReader(opsFilePath)))
 		{
-			Workbook workbook = new XSSFWorkbook();
-			Sheet sheet = workbook.createSheet("My Sheet");
-
-			String line;
-			int rowNum = 0;
-			while ((line = reader.readLine()) != null)
-			{
-				Row row = sheet.createRow(rowNum);
-				rowNum++;
-				String[] values = line.split(",", -1);
-				for (int i = 0; i < values.length; i++)
-				{
-					Cell cell = row.createCell(i);
-					String val = values[i];
-					if(i == 0 && val.contains("View Results:"))
-					{
-						val = "View Results:";
-					}
-					cell.setCellValue(val);
-				}
-			}
-			retVal = sheet;
+			retVal = readIntoSheet(reader);
 		}
 		catch (IOException e)
 		{
@@ -298,40 +290,110 @@ public class OperationsPanel extends AbstractForecastPanel
 		return retVal;
 	}
 
-	private static void convertCsvToExcel(String csvFilePath, String excelFilePath)
+	private Sheet readIntoSheet(BufferedReader reader) throws IOException
 	{
-		try (FileInputStream fis = new FileInputStream(csvFilePath))
+		Workbook workbook = new XSSFWorkbook();
+		Sheet sheet = workbook.createSheet("My Sheet");
+		String line;
+		int rowNum = 0;
+		while ((line = reader.readLine()) != null)
 		{
-			Workbook workbook = new HSSFWorkbook();
-			Sheet sheet = workbook.createSheet("Sheet1");
-			String line;
-			int rowNum = 0;
-			int colNum = 0;
-			try (BufferedReader br = new BufferedReader(new java.io.InputStreamReader(fis)))
+			Row row = sheet.createRow(rowNum);
+			rowNum++;
+			String[] values = line.split(",", -1);
+			for (int i = 0; i < values.length; i++)
 			{
-				while ((line = br.readLine()) != null)
+				Cell cell = row.createCell(i);
+				String val = values[i];
+				if(i == 0 && val.contains("View Results:"))
 				{
-					String[] data = line.split(",");
-					Row row = sheet.createRow(rowNum);
-					rowNum++;
-					colNum = 0;
-					for (String value : data)
+					val = "View Results:";
+				}
+				cell.setCellValue(val);
+			}
+		}
+		return sheet;
+	}
+
+	public static String convertXlsxToCsv(String xlsxFilePath)
+	{
+		String retVal = "";
+		try
+		{
+			Workbook workbook = new XSSFWorkbook(Files.newInputStream(Paths.get(xlsxFilePath)));
+			Sheet sheet = workbook.getSheetAt(0);
+			StringBuilder csvString = new StringBuilder();
+
+			for (Row row : sheet)
+			{
+				for (int i=row.getFirstCellNum(); i < row.getLastCellNum(); i++)
+				{
+					Cell cell = row.getCell(i);
+					if(cell instanceof XSSFCell)
 					{
-						Cell cell = row.createCell(colNum);
-						colNum++;
-						cell.setCellValue(value);
+						XSSFCell xssfCell = (XSSFCell) cell;
+						String cellValue = "";
+						if (xssfCell.getCellType() == Cell.CELL_TYPE_STRING)
+						{
+							cellValue = xssfCell.getStringCellValue();
+						}
+						else if (xssfCell.getCellType() == Cell.CELL_TYPE_NUMERIC)
+						{
+							cellValue = handleNumericFormulaType(xssfCell);
+						}
+						else if (xssfCell.getCellType() == Cell.CELL_TYPE_BOOLEAN)
+						{
+							cellValue = String.valueOf(xssfCell.getBooleanCellValue());
+						}
+						else if (xssfCell.getCellType() == Cell.CELL_TYPE_FORMULA)
+						{
+							cellValue = handleNumericFormulaType(xssfCell);
+						}
+						csvString.append(cellValue).append(",");
 					}
 				}
+				csvString.append("\n");
 			}
-			try (FileOutputStream fos = new FileOutputStream(excelFilePath))
-			{
-				workbook.write(fos);
-			}
+			retVal = csvString.toString();
 		}
 		catch (IOException e)
 		{
-			LOGGER.log(Level.SEVERE, e, () -> "Failed to convert csv file to xls: " + csvFilePath);
+			LOGGER.log(Level.CONFIG, e, () -> "Failed to convert " + xlsxFilePath + " to csv string");
 		}
+		return retVal;
+	}
+
+	private static String handleNumericFormulaType(XSSFCell xssfCell)
+	{
+		String cellValue;
+		try
+		{
+			if(DateUtil.isCellDateFormatted(xssfCell))
+			{
+				DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MMM");
+				LocalDateTime date = convertNumericToDate(xssfCell.getNumericCellValue());
+				cellValue = dateFormat.format(date);
+			}
+			else
+			{
+				double numeric = xssfCell.getNumericCellValue();
+				DecimalFormat decimalFormat = new DecimalFormat("#.#");
+				cellValue = decimalFormat.format(numeric);
+			}
+		}
+		catch (IllegalStateException e)
+		{
+			cellValue = xssfCell.getRawValue();
+			LOGGER.log(Level.FINE, e, () -> "Using raw value of " + xssfCell.getRawValue() + " for cell");
+		}
+		return cellValue;
+	}
+
+	private static LocalDateTime convertNumericToDate(double numericDateValue)
+	{
+		LocalDateTime baseDateTime = LocalDateTime.of(1899, 12, 31, 0, 0); // Base date "December 31, 1899"
+		LocalDateTime dateTime = baseDateTime.plusDays((long) numericDateValue);
+		return dateTime;
 	}
 
 }
