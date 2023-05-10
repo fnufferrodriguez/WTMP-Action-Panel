@@ -37,6 +37,7 @@ import hec.hecmath.TimeSeriesMath;
 import hec.io.TimeSeriesContainer;
 import hec.io.impl.StoreOptionImpl;
 import hec.model.RunTimeWindow;
+import hec2.wat.model.WatAnalysisPeriod;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
@@ -329,20 +330,28 @@ public class TempTargetPanel extends AbstractForecastPanel
 
 	private List<DSSPathname> saveImported(TemperatureTargetSet tempTargetSet, ForecastSimGroup simGrp) throws TempTargetSaveFailedException
 	{
-		List<TimeSeriesContainer> timeSeriesData = tempTargetSet.getTimeSeriesData(simGrp.getAnalysisPeriod().getRunTimeWindow());
 		List<DSSPathname> retVal = new ArrayList<>();
-		String forecastSimGroupDirectory = getSimGroupDirectory(simGrp);
-		String delim = "/";
-		String fileName = forecastSimGroupDirectory + delim + tempTargetSet.getName() +".dss";
-		for(TimeSeriesContainer tsc : timeSeriesData)
+		WatAnalysisPeriod analysisPeriod = simGrp.getAnalysisPeriod();
+		if(analysisPeriod != null && analysisPeriod.getRunTimeWindow() != null)
 		{
-			tsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
-			DSSPathname pathname = new DSSPathname(tsc.fullName);
-			pathname.setDPart("");
-			tsc.fullName = pathname.getPathname();
-			retVal.add(pathname);
-			saveTimeSeries(tsc, fileName);
-			tempTargetSet.setDssOutputPath(Paths.get(fileName));
+			List<TimeSeriesContainer> timeSeriesData = tempTargetSet.getTimeSeriesData(analysisPeriod.getRunTimeWindow());
+			String forecastSimGroupDirectory = getSimGroupDirectory(simGrp);
+			String delim = "/";
+			String fileName = forecastSimGroupDirectory + delim + tempTargetSet.getName() +".dss";
+			for(TimeSeriesContainer tsc : timeSeriesData)
+			{
+				tsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
+				DSSPathname pathname = new DSSPathname(tsc.fullName);
+				pathname.setDPart("");
+				tsc.fullName = pathname.getPathname();
+				retVal.add(pathname);
+				saveTimeSeries(tsc, fileName);
+				tempTargetSet.setDssOutputPath(Paths.get(fileName));
+			}
+		}
+		else
+		{
+			throw new TempTargetSaveFailedException("Analysis Period is not set for simulation!");
 		}
 		return retVal;
 	}

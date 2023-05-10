@@ -352,10 +352,13 @@ public final class TempTargetImportDialog extends RmaJDialog
             {
                 List<TemperatureTargetSet> sets = buildTempTargetSets();
                 _consumeTempTargetSetAction.accept(sets);
-                if(_consumeTempTargetSetAction.wasSuccessful())
-                {
-                    dispose();
-                }
+                dispose();
+            }
+            catch(TempTargetSaveFailedException e)
+            {
+                JOptionPane.showMessageDialog(this, e.getMessage(),
+                        "Save Failed", JOptionPane.ERROR_MESSAGE);
+                LOGGER.log(Level.CONFIG, e, () -> "Temp Target save failed: " + e.getMessage());
             }
             finally
             {

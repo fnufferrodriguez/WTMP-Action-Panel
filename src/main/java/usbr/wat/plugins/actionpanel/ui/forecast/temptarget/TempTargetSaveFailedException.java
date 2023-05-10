@@ -13,4 +13,9 @@ public final class TempTargetSaveFailedException extends Exception
     {
         super("Error writing " + error + "\n to " + fileName +"\n Error Status: " + statusCode);
     }
+
+    public TempTargetSaveFailedException(String error)
+    {
+        super(error);
+    }
 }
