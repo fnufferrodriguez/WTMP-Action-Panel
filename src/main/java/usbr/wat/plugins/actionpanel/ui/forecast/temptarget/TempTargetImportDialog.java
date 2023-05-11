@@ -686,6 +686,8 @@ public final class TempTargetImportDialog extends RmaJDialog
         };
         _checkBoxEditorCheckBox = _temperatureSetsTable.setCheckBoxCellEditor(0);
         _temperatureSetsTable.setColumnEnabled(false, 1);
+        _temperatureSetsTable.setPopupMenuEnabled(true);
+        _temperatureSetsTable.removePopupMenuRowEditingOptions();
         TableColumnModel columnModel = _temperatureSetsTable.getColumnModel();
         TableColumn column = columnModel.getColumn(0);
         column.setPreferredWidth(30);

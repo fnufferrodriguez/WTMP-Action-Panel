@@ -210,6 +210,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 		_ttTable = new RmaJTable(this, new String[] {"Date",""});
 		_ttTableModel = new TempTargetTableModel();
 		_ttTable.setModel(_ttTableModel);
+		_ttTable.removePopupMenuRowEditingOptions();
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = GridBagConstraints.REMAINDER;

@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -126,16 +127,70 @@ public final class TemperatureTargetSet extends NamedType
         return new ArrayList<>(_timeSeriesData);
     }
 
-    private void trimForYear2000()
+    private void trimStartDate(RunTimeWindow timeWindow)
     {
+        int startYear = timeWindow.getStartTime().year();
+        //this is a workaround to odd dss write behavior
+        int dayOfMonthToTrimTo = 2;
+        if(startYear == 2010)
+        {
+            dayOfMonthToTrimTo = 3;
+        }
+        if(startYear == 2020)
+        {
+            dayOfMonthToTrimTo = 5;
+        }
         for(TimeSeriesContainer tsc : _timeSeriesData)
         {
-            tsc.trimToTime(new HecTime("02Jan2000", "0100"),new HecTime("07Jan2001", "0000"));
+            List<Integer> newTimes = new ArrayList<>();
+            List<Double> newValues = new ArrayList<>();
+            for (int i = 0; i < tsc.times.length; i++)
+            {
+                LocalDateTime dateTime = tsc.getHecTime(i).getLocalDateTime();
+                if(!newTimes.isEmpty())
+                {
+                    newValues.add(tsc.values[i]);
+                    newTimes.add(tsc.times[i]);
+                }
+                else if (dateTime.getYear() > startYear
+                        || (dateTime.getYear() == startYear && dateTime.getMonth().getValue() > 1)
+                        || (dateTime.getYear() == startYear && dateTime.getDayOfMonth() > dayOfMonthToTrimTo)
+                        || (dateTime.getYear() == startYear && dateTime.getDayOfMonth() == dayOfMonthToTrimTo && dateTime.getHour() > 1))
+                {
+                    newTimes.add(tsc.times[i]);
+                    newValues.add(tsc.values[i]);
+                }
+            }
+            int[] times = convertListToIntArray(newTimes);
+            double[] values = convertListToDoubleArray(newValues);
+            tsc.times = times;
+            tsc.values = values;
+            tsc.numberValues = values.length;
             tsc.startTime = tsc.times[0];
             tsc.startHecTime = tsc.getHecTime(0);
-            tsc.endTime = tsc.times[tsc.times.length-1];
+            tsc.endTime = tsc.times[tsc.times.length - 1];
             tsc.endHecTime = tsc.getHecTime(tsc.numberValues - 1);
         }
+    }
+
+    private int[] convertListToIntArray(List<Integer> list)
+    {
+        int[] array = new int[list.size()];
+        for (int i = 0; i < list.size(); i++)
+        {
+            array[i] = list.get(i);
+        }
+        return array;
+    }
+
+    private double[] convertListToDoubleArray(List<Double> list)
+    {
+        double[] array = new double[list.size()];
+        for (int i = 0; i < list.size(); i++)
+        {
+            array[i] = list.get(i);
+        }
+        return array;
     }
 
     private void shiftTimeSeriesDataToAnalysisYear(RunTimeWindow timeWindow)
@@ -164,12 +219,12 @@ public final class TemperatureTargetSet extends NamedType
                     {
                         trimEndYear = computeTime.year();
                     }
-                    tsc.trimToTime(new HecTime("25Dec"+(trimStartYear-1), "0000"),new HecTime("07Jan"+(trimEndYear+1), "0000"));
+                    tsc.trimToTime(new HecTime("02Jan"+(trimStartYear), "0100"),new HecTime("07Jan"+(trimEndYear+1), "0100"));
                 }
                 tsc.startTime = tsc.times[0];
                 tsc.endTime = tsc.times[tsc.times.length-1];
                 tsc.startHecTime = tsc.getHecTime(0);
-                tsc.endHecTime = tsc.getHecTime(0);
+                tsc.endHecTime = tsc.getHecTime(tsc.times.length-1);
             }
         }
     }
@@ -244,9 +299,9 @@ public final class TemperatureTargetSet extends NamedType
         {
             shiftTimeSeriesDataToAnalysisYear(timeWindow);
         }
-        if(timeWindow.getStartTime().year() == 2000)
+        if(!_isUserDefined)
         {
-            trimForYear2000();
+            trimStartDate(timeWindow);
         }
     }
 
@@ -302,14 +357,19 @@ public final class TemperatureTargetSet extends NamedType
     {
         TimeSeriesContainer tsc = buildTemplateUserDefinedTSContainer(col, this);
         int year = timeWindow.getStartTime().year();
-        int hour = year == 2000 ? 1 : 0; // due to dss bug if year 2000 need to start at 01:00 on Jan 2nd
-        LocalTime localTime = LocalTime.of(hour, 0);
-        ZoneId zoneId = ZoneId.systemDefault();
-        LocalDate startDate = LocalDate.of(year, 1, 1); // Start date: January 1st 2020
-        if(year == 2000) //start at jan 2nd if using year 2000 as workaround dss bug
+        //this is a workaround to odd dss write behavior
+        int dayOfMonthToTrimTo = 2;
+        if(year == 2010)
         {
-            startDate = startDate.plusDays(1);
+            dayOfMonthToTrimTo = 3;
         }
+        if(year == 2020)
+        {
+            dayOfMonthToTrimTo = 5;
+        }
+        LocalTime localTime = LocalTime.of(1, 0);
+        ZoneId zoneId = ZoneId.of("UTC");
+        LocalDate startDate = LocalDate.of(year, 1, dayOfMonthToTrimTo); // Start date: January 2nd at 01:00 to workaround dss write bug
         LocalDate endDate = startDate.plusYears(1);
         endDate = endDate.plusWeeks(1);
         int numWeeks = (int) ChronoUnit.WEEKS.between(startDate, endDate);
