@@ -216,6 +216,7 @@ public class ForecastActionComputable
 			int currentMember;
 			for(int m = 0; m < _members.length;m ++ )
 			{
+				_sim.setRealizationPosition(m);
 				currentMember = _members[m];
 				_sim.addComputeMessage("Computing Ensemble Member "+currentMember);
 				_sim.addComputeMessage("Output will be saved  to F-Part C:"+ String.format("%06d", _outputCollectionStart+currentMember));
@@ -1398,7 +1399,7 @@ LOGGER.atInfo().log("Found "+srcList+" records for "+dssPath+" in "+dssFileAbs+"
 	@Override
 	public int getInitialLifeCycle()
 	{
-		return _members[0];
+		return 0;
 	}
 	@Override
 	public boolean cancelCompute()

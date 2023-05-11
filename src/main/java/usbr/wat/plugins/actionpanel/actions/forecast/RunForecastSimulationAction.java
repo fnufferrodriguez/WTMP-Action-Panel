@@ -108,7 +108,6 @@ public class RunForecastSimulationAction extends AbstractAction
 			while (esetIter.hasNext())
 			{
 				esetEntry = esetIter.next();
-
 				members = esetEntry.getValue();
 				eset = esetEntry.getKey();
 				int[] ensembleNums = simGroup.getEnsembleSetCollectionIndexing(sim, eset);
