@@ -346,7 +346,7 @@ public final class TempTargetImportDialog extends RmaJDialog
     private void okAction()
     {
         deleteInvalidFiles(_invalidFilesToDelete);
-        if(checkDuplicateNames())
+        if(validateDuplicateNames())
         {
             try
             {
@@ -367,7 +367,25 @@ public final class TempTargetImportDialog extends RmaJDialog
         }
     }
 
-    private boolean checkDuplicateNames()
+    private boolean validateDuplicateNames()
+    {
+        boolean retVal = true;
+        if(_importFromExistingRadioButton.isSelected())
+        {
+            retVal = validateFromExistingNames();
+        }
+        else
+        {
+            String name = _nameTextField.getText();
+            if(name != null && !name.trim().isEmpty() && _existingSetNames.contains(name.trim()))
+            {
+                retVal = handleDuplicateName(name);
+            }
+        }
+        return retVal;
+    }
+
+    private boolean validateFromExistingNames()
     {
         boolean retVal = true;
         for(int row =0; row < _temperatureSetsTable.getRowCount(); row++)
@@ -378,15 +396,25 @@ public final class TempTargetImportDialog extends RmaJDialog
                 Object name = _temperatureSetsTable.getValueAt(row, 1);
                 if(name != null && !name.toString().trim().isEmpty() && _existingSetNames.contains(name.toString().trim()))
                 {
-                    int opt = JOptionPane.showConfirmDialog(this, name.toString() + " already exists. Overwrite it?", "Confirm Override",
-                            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-                    if(opt == JOptionPane.NO_OPTION)
+                    retVal = handleDuplicateName(name.toString());
+                    if(!retVal)
                     {
-                        retVal = false;
                         break;
                     }
                 }
             }
+        }
+        return retVal;
+    }
+
+    private boolean handleDuplicateName(String name)
+    {
+        boolean retVal = true;
+        int opt = JOptionPane.showConfirmDialog(this, name + " already exists. Overwrite it?", "Confirm Override",
+                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        if(opt == JOptionPane.NO_OPTION)
+        {
+            retVal = false;
         }
         return retVal;
     }
