@@ -215,16 +215,19 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 		RmaTableModel tableModel = (RmaTableModel) e.getSource();
 		Component focusedComp = FocusManager.getCurrentManager().getFocusOwner();
 		RmaJTable table = (RmaJTable) SwingUtilities.getAncestorOfClass(RmaJTable.class, focusedComp);
-		int row = e.getFirstRow();
-		Object checkedObj = tableModel.getValueAt(row, 0);
-		if(checkedObj instanceof Boolean && ((Boolean)checkedObj))
+		if(table != null)
 		{
-			_ignoreTableModification = true;
-			clearTableSelection(table);
-			tableModel.setValueAt(true, row, 0);
-			_ignoreTableModification = false;
+			int row = e.getFirstRow();
+			Object checkedObj = tableModel.getValueAt(row, 0);
+			if(checkedObj instanceof Boolean && ((Boolean)checkedObj))
+			{
+				_ignoreTableModification = true;
+				clearTableSelection(table);
+				tableModel.setValueAt(true, row, 0);
+				_ignoreTableModification = false;
+			}
+			buildTablePlot(table);
 		}
-		buildTablePlot(table);
 	}
 	private void buildTablePlot(RmaJTable table)
 	{
@@ -728,10 +731,13 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 	 */
 	private void clearTableSelection(RmaJTable table)
 	{
-		int rowCnt = table.getRowCount();
-		for(int r = 0;r < rowCnt;r++ )
+		if(table != null)
 		{
-			table.setValueAt(Boolean.FALSE, r, 0);
+			int rowCnt = table.getRowCount();
+			for(int r = 0;r < rowCnt;r++ )
+			{
+				table.setValueAt(Boolean.FALSE, r, 0);
+			}
 		}
 	}
 
