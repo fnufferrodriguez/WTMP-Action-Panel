@@ -83,7 +83,8 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 	private static final Pattern UNIT_PATTERN = Pattern.compile("\\((.*?)\\)");
 	private static final String TEMP_PLOT_MIN_PROPERTY = "WTMP.Forecast.LowerTempPlotMLimit.Celsius";
 	private static final String TEMP_PLOT_MAX_PROPERTY = "WTMP.Forecast.UpperTempPlotLimit.Celsius";
-
+	private static final int DEFAULT_TEMP_PLOT_MIN_C = 0;
+	private static final int DEFAULT_TEMP_PLOT_MAX_C = 30;
 	private static final String DEFAULT_TEMP_AXIS_LABEL = "temp (C)";
 	private static final String DEFAULT_DEPTH_AXIS_LABEL = "depth (ft)";
 	private EnabledJPanel _plotsPanel;
@@ -451,12 +452,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 
 	private int getLowerTempPlotLimit(String units) throws DataSetIllegalArgumentException, UnitsConversionException
 	{
-		String minString = System.getProperty(TEMP_PLOT_MIN_PROPERTY);
-		int min = 0;
-		if(minString != null)
-		{
-			min = Integer.parseInt(minString);
-		}
+		int min = Integer.getInteger(TEMP_PLOT_MIN_PROPERTY, DEFAULT_TEMP_PLOT_MIN_C);
 		String siTempUnits = Parameter.getParameter(Parameter.PARAMID_TEMP).getUnitsStringForSystem(Unit.SI_ID);
 		min = (int) Units.convertUnits(min, siTempUnits, units);
 		return min;
@@ -464,12 +460,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 
 	private int getUpperTempPlotLimit(String units) throws DataSetIllegalArgumentException, UnitsConversionException
 	{
-		int max = 30;
-		String maxString = System.getProperty(TEMP_PLOT_MAX_PROPERTY);
-		if(maxString != null)
-		{
-			max = Integer.parseInt(maxString);
-		}
+		int max = Integer.getInteger(TEMP_PLOT_MAX_PROPERTY, DEFAULT_TEMP_PLOT_MAX_C);
 		String siTempUnits = Parameter.getParameter(Parameter.PARAMID_TEMP).getUnitsStringForSystem(Unit.SI_ID);
 		max = (int) Units.convertUnits(max, siTempUnits, units);
 		return max;
