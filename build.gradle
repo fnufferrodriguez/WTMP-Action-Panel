@@ -10,56 +10,41 @@ dependencies {
 
     // JasperReports
     api ('net.sf.jasperreports:jasperreports:6.17.0') {
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-json-org'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'com.fasterxml.jackson.datatype'
     }
     api ('net.sf.jasperreports:jasperreports-chart-themes:6.17.0') {
         exclude group: 'net.sf.jasperreports', module: 'jasperreports'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-json-org'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'com.fasterxml.jackson.datatype'
     }
     implementation ('net.sf.jasperreports:jasperreports-chart-customizers:6.17.0') {
         exclude group: 'net.sf.jasperreports', module: 'jasperreports'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-json-org'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'com.fasterxml.jackson.datatype'
+
     }
     implementation ('net.sf.jasperreports:jasperreports-fonts:6.17.0') {
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-json-org'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'com.fasterxml.jackson.datatype'
     }
     implementation ('net.sf.jasperreports:jasperreports-custom-visualization:6.17.0') {
         exclude group: 'net.sf.jasperreports', module: 'jasperreports'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-json-org'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'com.fasterxml.jackson.datatype'
     }
     implementation ('net.sf.jasperreports:jasperreports-functions:6.17.0') {
         exclude group: 'net.sf.jasperreports', module: 'jasperreports'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-json-org'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'com.fasterxml.jackson.datatype'
     }
     implementation ('net.sf.jasperreports:jasperreports-annotation-processors:6.17.0') {
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-json-org'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'com.fasterxml.jackson.datatype'
     }
     implementation ('net.sf.jasperreports:jasperreports-metadata:6.17.0') {
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-databind'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
-        exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
-        exclude group: 'com.fasterxml.jackson.datatype', module: 'jackson-datatype-json-org'
+        exclude group: 'com.fasterxml.jackson.core'
+        exclude group: 'com.fasterxml.jackson.datatype'
     }
 	implementation 'org.apache.poi:poi:3.8'
 	implementation 'org.apache.poi:poi-ooxml:3.8'
