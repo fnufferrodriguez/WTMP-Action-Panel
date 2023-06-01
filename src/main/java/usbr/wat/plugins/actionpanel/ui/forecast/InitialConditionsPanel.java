@@ -491,18 +491,6 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 	 */
 	protected void addListeners()
 	{
-		Project.addStaticProjectListener(new ProjectAdapter()
-		{
-			@Override
-			public void projectOpened(ProjectEvent e)
-			{
-				EventQueue.invokeLater(()->buildPlotsPanel(_plotsPanel));
-			}
-			@Override
-			public void projectClosed(ProjectEvent e)
-			{
-			}
-		});
 		addUpperTableSelectionListeners();
 	}
 
@@ -682,6 +670,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 		clearTableSelections();
 		if ( fsg != null )
 		{
+			buildPlotsPanel(_plotsPanel);
 			InitialConditions ic = fsg.getInitialConditions();
 			Set<Entry<String, ResComponents>> entrySet = _resComponents.entrySet();
 			Iterator<Entry<String, ResComponents>> iter = entrySet.iterator();
