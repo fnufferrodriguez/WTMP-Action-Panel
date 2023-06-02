@@ -39,7 +39,7 @@ public class EnsembleFPartMapDlg extends RmaJDialog
 
 	public EnsembleFPartMapDlg(Window parent)
 	{
-		super(parent, true);
+		super(parent, false);
 		buildControls();
 		addListeners();
 		pack();
