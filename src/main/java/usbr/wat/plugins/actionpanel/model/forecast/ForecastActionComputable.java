@@ -91,7 +91,6 @@ public class ForecastActionComputable
 	private final boolean _recomputeAll;
 	private int[] _members;
 	/** the starting collection number to copy the data to the collections output file */
-	private int _outputCollectionStart;
 	private final List<EnsembleSet> _selectedESets;
 
 	private ForecastSimGroup _simGroup;
@@ -110,6 +109,7 @@ public class ForecastActionComputable
 	private DssPathMap _tempTargetDssPathMap;
 	private ComputeProgressPanel _computeProgressPanel;
 	private int _memberCnt;
+	private int _memberIdx;
 	private JProgressBar _lifecyclePbar;
 
 
@@ -218,9 +218,9 @@ public class ForecastActionComputable
 		Set<Map.Entry<EnsembleSet, int[]>> esetSet = esetMap.entrySet();
 		Iterator<Map.Entry<EnsembleSet, int[]>> esetIter = esetSet.iterator();
 		int esetIdx = 0;
+		_memberIdx = 0;
 		while (esetIter.hasNext())
 		{
-			_computeProgressPanel.setRealizationPosition(esetIdx);
 			esetEntry = esetIter.next();
 			_members = esetEntry.getValue();
 			eset = esetEntry.getKey();
@@ -236,8 +236,11 @@ public class ForecastActionComputable
 				_computeProgressPanel.computeComplete(false);
 				return false;
 			}
+
+
 			esetIdx++;
 		}
+		_sim.setRealizationPosition(_memberCnt);
 		_computeProgressPanel.computeComplete(true);
 		return true;
 	}
@@ -299,7 +302,8 @@ public class ForecastActionComputable
 			int currentMember;
 			for(int m = 0; m < _members.length;m ++ )
 			{
-				_computeProgressPanel.setRealizationPosition(m);
+
+				_computeProgressPanel.setRealizationPosition(_memberIdx);
 				currentMember = _members[m];
 				if ( eset.getComputedMembers().contains(currentMember) && !_recomputeAll)
 				{
@@ -307,7 +311,7 @@ public class ForecastActionComputable
 					continue;
 				}
 				_computeProgressPanel.addMessage("Computing Ensemble Member "+currentMember);
-				_computeProgressPanel.addMessage("Output will be saved  to F-Part C:"+ String.format("%06d", _outputCollectionStart+currentMember));
+				_computeProgressPanel.addMessage("Output will be saved  to F-Part C:"+ String.format("%06d", outputCollectionStart+currentMember));
 				System.out.println("Computing Ensemble Member "+currentMember+" for "+_sim );
 				if ( _debug )
 				{
@@ -380,7 +384,7 @@ public class ForecastActionComputable
 				{
 					JOptionPane.showMessageDialog(Browser.getBrowserFrame(), "Copying results for ensemble member "+currentMember);
 				}
-				copyDssResultsToCollectionsDss(currentMember, _outputCollectionStart);
+				copyDssResultsToCollectionsDss(currentMember, outputCollectionStart);
 				if ( _canceled )
 				{
 					return false;
@@ -393,7 +397,7 @@ public class ForecastActionComputable
 				{
 					return false;
 				}
-				
+				_memberIdx++;
 			}
 		}
 		catch(Exception e )
@@ -413,7 +417,6 @@ public class ForecastActionComputable
 			restoreDssPaths(savedDssPaths);
 			_preCodeMap.clear();
 			_postCodeMap.clear();
-			_sim.setRealizationPosition(_members.length);
 			for (int l = 0; l < listeners.size(); l++ )
 			{
 				_sim.removeComputeProgressListener(progressListener);
@@ -1442,10 +1445,10 @@ LOGGER.atInfo().log("Found "+srcList+" records for "+dssPath+" in "+dssFileAbs+"
 	 * forecast DSS file
 	 * @param modelAlt
 	 */
-	private boolean updateIterationDssWithDssData(ModelAlternative modelAlt, int interationId)
+	private boolean updateIterationDssWithDssData(ModelAlternative modelAlt, int iterationId)
 	{
 			
-		_sim.addComputeMessage("Saving Computed DSS records to collections for "+modelAlt);
+		_sim.addComputeMessage("Saving Computed DSS records to collection "+iterationId+" for "+modelAlt);
 		
 		String fPart = _sim.getFPart(modelAlt);
 		ComputeOptions co = modelAlt.getComputeOptions();
@@ -1468,7 +1471,7 @@ LOGGER.atInfo().log("Found "+srcList+" records for "+dssPath+" in "+dssFileAbs+"
 		{
 			path = srcPaths.get(i);
 			pathname.setPathname(path);
-			pathname.setCollectionSequence(interationId);
+			pathname.setCollectionSequence(iterationId);
 			destPaths.add(pathname.getPathname());
 		}
 		String iterDssFile = getCollectionsOutputDssFile(getCollectionDssFilename());
