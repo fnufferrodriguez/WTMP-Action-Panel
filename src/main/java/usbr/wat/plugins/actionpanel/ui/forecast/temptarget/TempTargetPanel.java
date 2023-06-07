@@ -140,9 +140,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 		_ttInfoTable.commitEdit(true);
 		_ttInfoTable.setValueAt(tempTargetSet, 0, 0);
 		_ttInfoTable.setValueAt(tempTargetSet.getDescription(), 0, 1);
-		_ttInfoTable.setColumnEnabled(false, 0);
-		_ttInfoTable.setColumnEnabled(false, 1);
-		_ttInfoTable.setColumnEnabled(false, 2);
+		_ttInfoTable.setRowEnabled(false, 0);
 	}
 
 	private Integer getRowThatContainsName(RmaTableModel tableModel, TemperatureTargetSet tempTargetSet)
