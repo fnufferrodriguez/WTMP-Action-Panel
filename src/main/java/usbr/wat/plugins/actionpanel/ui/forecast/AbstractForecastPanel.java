@@ -281,9 +281,15 @@ public abstract class AbstractForecastPanel extends RmaJPanel
 		AbstractForecastPanel panel = getPanelForTable(table);
 		if(row >= 0 && panel != null)
 		{
-			setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-			panel.tableRowDeleteClicked(row);
-			setCursor(Cursor.getDefaultCursor());
+			try
+			{
+				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+				panel.tableRowDeleteClicked(row);
+			}
+			finally
+			{
+				setCursor(Cursor.getDefaultCursor());
+			}
 		}
 	}
 

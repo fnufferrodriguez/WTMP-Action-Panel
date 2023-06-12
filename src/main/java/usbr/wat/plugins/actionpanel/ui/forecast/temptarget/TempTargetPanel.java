@@ -27,7 +27,6 @@ import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
-import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
 import com.rma.io.DssFileManagerImpl;
@@ -108,21 +107,23 @@ public class TempTargetPanel extends AbstractForecastPanel
 			{
 				upperTableModel.insertRow(rowThatContainsName, new Vector<>(Collections.singletonList(tempTargetSet)));
 				upperTableModel.deleteRow(rowThatContainsName + 1);
+				_tempTargetTable.setRowSelectionInterval(rowThatContainsName, rowThatContainsName, false);
+				_tempTargetTable.updateSelection(rowThatContainsName, 0, false, false);
 			}
 			else
 			{
 				upperTableModel.addRow(new Vector<>(Collections.singletonList(tempTargetSet)));
+				int lastRowIndex = upperTableModel.getRowCount() - 1;
+				_tempTargetTable.setRowSelectionInterval(lastRowIndex, lastRowIndex, false);
+				_tempTargetTable.updateSelection(lastRowIndex, 0, false, false);
 			}
 		}
 		if(!tempTargetSets.isEmpty())
 		{
 			TemperatureTargetSet selectedSet = tempTargetSets.get(tempTargetSets.size() - 1);
-			int lastRowIndex = upperTableModel.getRowCount() - 1;
 			_selectedTempTargetSet = selectedSet;
 			fillTempTargetInfoTable(selectedSet);
 			fillTempTargetTable(selectedSet);
-			_tempTargetTable.setRowSelectionInterval(lastRowIndex, lastRowIndex, false);
-			_tempTargetTable.updateSelection(lastRowIndex, 0, false, false);
 		}
 		if(_tempTargetTable.getSelectedRow() < 0)
 		{
@@ -523,11 +524,9 @@ public class TempTargetPanel extends AbstractForecastPanel
 		{
 			_ttTable.setDoubleCellEditor(col);
 		}
-		TableColumn dateColumn = _ttTable.getColumnModel().getColumn(TempTargetTableModel.DATE_COL_INDEX);
-		dateColumn.setMinWidth(DATE_COL_MIN_WIDTH);
 		_ttTableModel.setTempTargetSet(temperatureTargetSet, _fsg);
 		_ttTableModel.fireTableStructureChanged();
-		_ttTable.setColumnWidth(0, DATE_COL_MIN_WIDTH);
+		_ttTable.setColumnWidth(TempTargetTableModel.DATE_COL_INDEX, DATE_COL_MIN_WIDTH);
 	}
 
 	private String getColumnNameFromFPart(TimeSeriesContainer timeSeriesContainer)
