@@ -21,12 +21,12 @@ import java.util.Optional;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
-import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
 import com.rma.io.DssFileManagerImpl;
@@ -37,6 +37,7 @@ import hec.hecmath.HecMathException;
 import hec.hecmath.TimeSeriesMath;
 import hec.io.TimeSeriesContainer;
 import hec.io.impl.StoreOptionImpl;
+import hec.lang.NamedType;
 import hec.model.RunTimeWindow;
 import hec2.wat.model.WatAnalysisPeriod;
 import rma.swing.EnabledJPanel;
@@ -44,6 +45,7 @@ import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
 import rma.swing.table.RmaTableModel;
 import rma.util.RMAConst;
+import usbr.wat.plugins.actionpanel.model.forecast.EnsembleSet;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
 import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetTimeStep;
@@ -56,6 +58,7 @@ import usbr.wat.plugins.actionpanel.ui.forecast.ForecastPanel;
  */
 public class TempTargetPanel extends AbstractForecastPanel
 {
+	private static final int DATE_COL_MIN_WIDTH = 100;
 	private static final Logger LOGGER = Logger.getLogger(TempTargetPanel.class.getName());
 	private RmaJTable _ttInfoTable;
 	private JButton _createButton;
@@ -104,10 +107,15 @@ public class TempTargetPanel extends AbstractForecastPanel
 			{
 				upperTableModel.insertRow(rowThatContainsName, new Vector<>(Collections.singletonList(tempTargetSet)));
 				upperTableModel.deleteRow(rowThatContainsName + 1);
+				_tempTargetTable.setRowSelectionInterval(rowThatContainsName, rowThatContainsName, false);
+				_tempTargetTable.updateSelection(rowThatContainsName, 0, false, false);
 			}
 			else
 			{
 				upperTableModel.addRow(new Vector<>(Collections.singletonList(tempTargetSet)));
+				int lastRowIndex = upperTableModel.getRowCount() - 1;
+				_tempTargetTable.setRowSelectionInterval(lastRowIndex, lastRowIndex, false);
+				_tempTargetTable.updateSelection(lastRowIndex, 0, false, false);
 			}
 		}
 		if(!tempTargetSets.isEmpty())
@@ -116,6 +124,10 @@ public class TempTargetPanel extends AbstractForecastPanel
 			_selectedTempTargetSet = selectedSet;
 			fillTempTargetInfoTable(selectedSet);
 			fillTempTargetTable(selectedSet);
+		}
+		if(_tempTargetTable.getSelectedRow() < 0)
+		{
+			clearPanel();
 		}
 	}
 
@@ -132,6 +144,7 @@ public class TempTargetPanel extends AbstractForecastPanel
 			}
 
 			_fsg.setTemperatureTargetSets(new ArrayList<>(sets));
+			_fsg.saveData();
 		}
 	}
 
@@ -323,6 +336,10 @@ public class TempTargetPanel extends AbstractForecastPanel
 				tsc.fullName = pathname.getPathname();
 				retVal.add(pathname);
 				saveTimeSeries(tsc, fileName);
+				if(tempTargetSet.isUserDefined())
+				{
+					tempTargetSet.setDssSourcePath(Paths.get(fileName));
+				}
 				tempTargetSet.setDssOutputPath(Paths.get(fileName));
 			}
 		}
@@ -507,10 +524,9 @@ public class TempTargetPanel extends AbstractForecastPanel
 		{
 			_ttTable.setDoubleCellEditor(col);
 		}
-		TableColumn dateColumn = _ttTable.getColumnModel().getColumn(TempTargetTableModel.DATE_COL_INDEX);
-		dateColumn.setMaxWidth(50);
 		_ttTableModel.setTempTargetSet(temperatureTargetSet, _fsg);
 		_ttTableModel.fireTableStructureChanged();
+		_ttTable.setColumnWidth(TempTargetTableModel.DATE_COL_INDEX, DATE_COL_MIN_WIDTH);
 	}
 
 	private String getColumnNameFromFPart(TimeSeriesContainer timeSeriesContainer)
@@ -542,6 +558,16 @@ public class TempTargetPanel extends AbstractForecastPanel
 	}
 
 	@Override
+	public void setVisible(boolean visible)
+	{
+		super.setVisible(visible);
+		if(visible)
+		{
+			tableRowSelected(_tempTargetTable.getSelectedRow());
+		}
+	}
+
+	@Override
 	protected void tableRowSelected(int row)
 	{
 		ForecastTable table = getTableForPanel();
@@ -564,6 +590,8 @@ public class TempTargetPanel extends AbstractForecastPanel
 					TemperatureTargetSet set = setOptional.get();
 					fillTempTargetInfoTable(set);
 					fillTempTargetTable(set);
+					_tempTargetTable.setRowSelectionInterval(row, row, false);
+					_tempTargetTable.updateSelection(row, 0, false, false);
 					set.setModified(false);
 				}
 			}
@@ -571,6 +599,42 @@ public class TempTargetPanel extends AbstractForecastPanel
 		}
 		_topTableRowSelected = row;
 		setModified(false);
+	}
+
+	@Override
+	public void tableRowDeleteClicked(int rowToDelete)
+	{
+		Object value = _tempTargetTable.getValueAt(rowToDelete, 0);
+		if(_fsg != null && value != null)
+		{
+			Optional<TemperatureTargetSet> setToDelete = ((TempTargetForecastTableModel) _tempTargetTable.getModel()).getTemperatureTargetSetByName(value.toString());
+			setToDelete.ifPresent(set ->
+			{
+				List<EnsembleSet> eSetsUsingTTSet = _fsg.getEnsembleSetsUsingTempTargetSet(set);
+				String confirmMessage = "Do you want to delete temperature target set " + set.getName() + "?";
+				if(!eSetsUsingTTSet.isEmpty())
+				{
+					List<String> eSetNames = eSetsUsingTTSet.stream()
+							.map(NamedType::getName)
+							.collect(Collectors.toList());
+					confirmMessage = "Deleting " + set.getName() + " will also delete the following ensemble sets that use it:" +
+							"\n\n" + String.join(",\n", eSetNames) + "\n\nDo you want to continue?";
+				}
+				int opt = JOptionPane.showConfirmDialog(this, confirmMessage,
+						"Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+				if(opt == JOptionPane.YES_OPTION)
+				{
+					_selectedTempTargetSet = null;
+					_fsg.removeTemperatureTargetSet(set);
+					_fsg.saveData();
+					if(!eSetsUsingTTSet.isEmpty())
+					{
+						_forecastPanel.refreshSimulationPanel();
+					}
+					_tempTargetTable.deleteRow(rowToDelete);
+				}
+			});
+		}
 	}
 
 	private void clearPanel()

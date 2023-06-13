@@ -11,13 +11,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import com.rma.util.XMLUtilities;
 import hec2.wat.model.WatSimulation;
-import org.apache.commons.collections4.map.MultiKeyMap;
 import org.jdom.Element;
 
 import usbr.wat.plugins.actionpanel.model.AbstractSimulationGroup;
@@ -640,6 +641,34 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 		return null;
 	}
 
+	private void deleteEnsembleSetsFor(TemperatureTargetSet temperatureTargetSet)
+	{
+		List<EnsembleSet> esetsToRemove = getEnsembleSetsUsingTempTargetSet(temperatureTargetSet);
+		for (Map.Entry<String, List<EnsembleSet>> entry : _ensembleSets.entrySet())
+		{
+			List<EnsembleSet> esets = entry.getValue();
+			esets.removeIf(esetsToRemove::contains);
+		}
+	}
+
+	public List<EnsembleSet> getEnsembleSetsUsingTempTargetSet(TemperatureTargetSet temperatureTargetSet)
+	{
+		LinkedHashSet<EnsembleSet> eSetsUsingTTSet = new LinkedHashSet<>();
+		for (Map.Entry<String, List<EnsembleSet>> entry : _ensembleSets.entrySet())
+		{
+			List<EnsembleSet> esets = entry.getValue();
+			for(EnsembleSet eset : esets)
+			{
+				if(Objects.equals(eset.getTemperatureTargetSet(), temperatureTargetSet))
+				{
+					eSetsUsingTTSet.add(eset);
+				}
+			}
+		}
+		return new ArrayList<>(eSetsUsingTTSet);
+	}
+
+
 	public boolean deleteEnsembleSet(WatSimulation sim, EnsembleSet eset)
 	{
 		if ( eset == null )
@@ -742,5 +771,11 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 	public List<EnsembleSet> getEnsembleSetsFor(WatSimulation simulation)
 	{
 		return _ensembleSets.get(simulation.getName());
+	}
+
+	public void removeTemperatureTargetSet(TemperatureTargetSet set)
+	{
+		_tempTargetSets.remove(set);
+		deleteEnsembleSetsFor(set);
 	}
 }
