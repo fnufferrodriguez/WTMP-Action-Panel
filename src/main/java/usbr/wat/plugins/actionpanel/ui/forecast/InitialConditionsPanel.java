@@ -699,7 +699,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 	private void fillUpperInitialConditionsTable()
 	{
 		InitialConditions initialConditions = _fsg.getInitialConditions();
-		((RmaTableModel)_initialConditionsTable.getModel()).clearAll();
+		_initialConditionsTable.deleteCells();
 		List<String> reservoirs = initialConditions.getReservoirs();
 		for(String reservoir : reservoirs)
 		{
@@ -708,7 +708,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 			{
 				String profile = profiles.get(0);
 				String displayValue = reservoir + " (" + profile + ")";
-				((RmaTableModel)_initialConditionsTable.getModel()).addRow(new Vector<>(Collections.singletonList(displayValue)));
+				_initialConditionsTable.appendRow(new Vector<>(Collections.singletonList(displayValue)));
 			}
 
 		}
