@@ -16,17 +16,21 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
 
 import com.rma.model.Project;
 import hec.heclib.util.HecTime;
+import hec.lang.NamedType;
 import hec2.wat.model.WatAnalysisPeriod;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.model.forecast.BcData;
+import usbr.wat.plugins.actionpanel.model.forecast.EnsembleSet;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastConfigFiles;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.MeteorlogicData;
@@ -284,18 +288,71 @@ public class BcPanel extends AbstractForecastPanel
 			_bcInfoTable.deleteCells();
 			if (selRow > -1)
 			{
-				BcData bcData = (BcData) table.getValueAt(selRow, 0);
-				Vector<String> row = new Vector<>();
-				row.add(bcData.getName());
-				_bcInfoTable.appendRow(row);
-				_plotPanel.fillPanel(_fsg, bcData);
+				Object value = table.getValueAt(selRow, 0);
+				if(value instanceof BcData)
+				{
+					BcData bcData = (BcData) value;
+					Vector<String> row = new Vector<>();
+					row.add(bcData.getName());
+					_bcInfoTable.appendRow(row);
+					_plotPanel.fillPanel(_fsg, bcData);
+					_bcTable.setRowSelectionInterval(selRow, selRow, false);
+					_bcTable.updateSelection(selRow, 0, false, false);
+				}
+			}
+			else
+			{
+				clearPanel();
 			}
 		}
 	}
 
 	@Override
-	public void tableRowDeleteClicked(int selectedRow)
+	public void setVisible(boolean visible)
 	{
-		//TODO
+		super.setVisible(visible);
+		if(visible && _bcTable.getSelectedRow() < 0)
+		{
+			clearPanel();
+		}
+	}
+
+	@Override
+	protected void clearPanel()
+	{
+		_plotPanel.clearPanel();
+		_bcInfoTable.deleteCells();
+	}
+
+	@Override
+	public void tableRowDeleteClicked(int rowToDelete)
+	{
+		Object value = _bcTable.getValueAt(rowToDelete, 0);
+		if(_fsg != null && value instanceof BcData)
+		{
+			BcData bcData = (BcData) value;
+			List<EnsembleSet> eSetsUsingBcData = _fsg.getEnsembleSetsUsingBcData(bcData);
+			String confirmMessage = "Do you want to delete boundary condition set " + bcData.getName() + "?";
+			if(!eSetsUsingBcData.isEmpty())
+			{
+				List<String> eSetNames = eSetsUsingBcData.stream()
+						.map(NamedType::getName)
+						.collect(Collectors.toList());
+				confirmMessage = "Deleting " + bcData.getName() + " will also delete the following ensemble sets that use it:" +
+						"\n\n" + String.join(",\n", eSetNames) + "\n\nDo you want to continue?";
+			}
+			int opt = JOptionPane.showConfirmDialog(this, confirmMessage,
+					"Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+			if(opt == JOptionPane.YES_OPTION)
+			{
+				_fsg.removeBcData(bcData);
+				_fsg.saveData();
+				if(!eSetsUsingBcData.isEmpty())
+				{
+					_forecastPanel.refreshSimulationPanel();
+				}
+				_bcTable.deleteRow(rowToDelete);
+			}
+		}
 	}
 }

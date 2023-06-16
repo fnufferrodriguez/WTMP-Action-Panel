@@ -13,6 +13,7 @@ import java.awt.GridBagLayout;
 import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -64,7 +65,6 @@ import rma.swing.table.ColumnGroup;
 import rma.swing.table.GroupableTableHeader;
 import rma.swing.table.RmaTableModel;
 import rma.util.RMAIO;
-import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.actions.ReviewDataAction;
 import usbr.wat.plugins.actionpanel.actions.UpdateDataAction;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastConfigFiles;
@@ -345,89 +345,111 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 
 
 	/**
-	 * @param fileName
+	 * @param baseFileName
 	 * @return
 	 */
-	private Set<Profile> readProfileFile(String fileName)
+	private Set<Profile> readProfileFile(String baseFileName)
 	{
-		Set<Profile>profiles = new TreeSet<>();
-		RmaFile file = FileManagerImpl.getFileManager().getFile(fileName);
-		if ( file == null )
+		Set<Profile> profiles = new TreeSet<>();
+		if(_fsg != null && _fsg.getAnalysisPeriod() != null)
 		{
-			LOGGER.atInfo().log("Failed to find file:"+fileName);
-			return profiles;
-		}
-		BufferedReader reader = file.getBufferedReader();
-		if ( reader == null )
-		{
-			LOGGER.atInfo().log("Failed to get Reader for file:"+fileName);
-			return profiles;
-		}
-		String line;
-		PairedDataContainer pdc;
-		String currDate = null, date;
-		String[] parts;
-		DSSPathname pathname = new DSSPathname();
-		Profile profile = null;
-		List<String>temps = new ArrayList<>();
-		List<String>depths = new ArrayList<>();
-		
-		try
-		{
-			reader.readLine(); //toss the first line
-			while ((line=reader.readLine())!= null )
+			List<String> fileNames = new ArrayList<>();
+			int dotIndex = baseFileName.indexOf(".");
+			String baseFileNameNoExtension = baseFileName.substring(0, dotIndex);
+			int year = _fsg.getAnalysisPeriod().getRunTimeWindow().getStartTime().getLocalDateTime().getYear();
+			if (Paths.get(baseFileNameNoExtension + "-" + year + ".csv").toFile().exists())
 			{
-				parts = line.split(",");
-				if ( parts.length != 3 )
+				fileNames.add(baseFileNameNoExtension + "-" + year + ".csv");
+			}
+			if (Paths.get(baseFileNameNoExtension + "-" + (year - 1) + ".csv").toFile().exists())
+			{
+				fileNames.add(baseFileNameNoExtension + "-" + (year - 1) + ".csv");
+			}
+			if (fileNames.isEmpty())
+			{
+				fileNames.add(baseFileName);
+			}
+			for (String fileName : fileNames)
+			{
+				RmaFile file = FileManagerImpl.getFileManager().getFile(fileName);
+				if (file == null)
 				{
-					continue;
+					LOGGER.atInfo().log("Failed to find file:" + fileName);
+					return profiles;
 				}
-				date = parts[0];
-				if ( currDate == null || !date.equals(currDate))
+				BufferedReader reader = file.getBufferedReader();
+				if (reader == null)
 				{
-					if ( profile != null )
+					LOGGER.atInfo().log("Failed to get Reader for file:" + fileName);
+					return profiles;
+				}
+				String line;
+				PairedDataContainer pdc;
+				String currDate = null, date;
+				String[] parts;
+				DSSPathname pathname = new DSSPathname();
+				Profile profile = null;
+				List<String> temps = new ArrayList<>();
+				List<String> depths = new ArrayList<>();
+
+				try
+				{
+					reader.readLine(); //toss the first line
+					while ((line = reader.readLine()) != null)
+					{
+						parts = line.split(",");
+						if (parts.length != 3)
+						{
+							continue;
+						}
+						date = parts[0];
+						if (currDate == null || !date.equals(currDate))
+						{
+							if (profile != null)
+							{
+								fillInProfilePdc(profile, temps, depths);
+							}
+							currDate = date;
+							temps.clear();
+							depths.clear();
+							pdc = new PairedDataContainer();
+							pathname.setCPart("TEMP-ELEV");
+							pathname.setFPart(date);
+							pdc.fullName = pathname.getPathname();
+							pdc.fileName = fileName;
+							int idx = date.indexOf(' ');
+							if (idx > -1)
+							{
+								date = date.substring(0, idx);
+							}
+							profile = new Profile(date);
+							profiles.add(profile);
+							profile._pdc = pdc;
+						}
+						temps.add(parts[1]);
+						depths.add(parts[2]);
+
+					}
+					if (profile != null)
 					{
 						fillInProfilePdc(profile, temps, depths);
 					}
-					currDate = date;
-					temps.clear();
-					depths.clear();
-					pdc = new PairedDataContainer();
-					pathname.setCPart("TEMP-ELEV");
-					pathname.setFPart(date);
-					pdc.fullName = pathname.getPathname();
-					pdc.fileName = fileName;
-					int idx = date.indexOf(' ');
-					if ( idx > -1 )
-					{
-						date = date.substring(0,idx);
-					}
-					profile = new Profile(date);
-					profiles.add(profile);
-					profile._pdc = pdc;
 				}
-				temps.add(parts[1]);
-				depths.add(parts[2]);
-
-			}
-			if ( profile != null )
-			{
-				fillInProfilePdc(profile, temps, depths);
-			}
-		}
-		catch (IOException e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		finally
-		{
-			try
-			{
-				reader.close();
-			}
-			catch (IOException e)
-			{
+				catch (IOException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				finally
+				{
+					try
+					{
+						reader.close();
+					}
+					catch (IOException e)
+					{
+					}
+				}
 			}
 		}
 		return profiles;
@@ -497,6 +519,12 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 	protected void addListeners()
 	{
 		addUpperTableListeners();
+	}
+
+	@Override
+	protected void clearPanel()
+	{
+		//noop
 	}
 
 	/**
@@ -581,7 +609,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 	 */
 	private void buildButtonPanel(JPanel buttonPanel)
 	{
-		_updateDataAction = new UpdateDataAction(ActionPanelPlugin.getInstance().getActionsWindow());
+		_updateDataAction = new UpdateDataAction();
 		GridBagConstraints gbc = new GridBagConstraints();
 		JButton button = new JButton(_updateDataAction);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
@@ -594,7 +622,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel
 		gbc.insets    = RmaInsets.INSETS5505;
 		buttonPanel.add(button, gbc);
 	
-		_reviewDataAction = new ReviewDataAction(ActionPanelPlugin.getInstance().getActionsWindow());
+		_reviewDataAction = new ReviewDataAction();
 		button = new JButton(_reviewDataAction);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;

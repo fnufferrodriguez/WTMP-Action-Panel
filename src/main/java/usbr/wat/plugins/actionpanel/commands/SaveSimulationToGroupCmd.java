@@ -99,7 +99,7 @@ public class SaveSimulationToGroupCmd extends AbstractNewManagerCommand
 		_project.addManager(_newSim);
 		if ( _runExtract)
 		{
-			new UpdateDataAction(ActionPanelPlugin.getInstance().getActionsWindow()).updateData(_simGroup);
+			new UpdateDataAction().updateData(_simGroup);
 		}
 		
 		return false;

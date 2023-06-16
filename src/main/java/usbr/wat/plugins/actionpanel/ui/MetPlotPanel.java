@@ -230,4 +230,11 @@ public class MetPlotPanel<T> extends EnabledJPanel
 			_locationCombo.setSelectedIndex(0);
 		}
 	}
+
+    public void clearPanel()
+    {
+		_locationCombo.setSelectedIndex(-1);
+		_plotPanel.clearPanel();
+		_locationCombo.setEnabled(false);
+    }
 }

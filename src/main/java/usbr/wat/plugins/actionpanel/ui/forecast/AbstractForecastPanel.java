@@ -220,6 +220,7 @@ public abstract class AbstractForecastPanel extends RmaJPanel
 			_bcTableModel = (RmaTableModel) _bcTable.getModel();
 		}
 		_bcTable.setName("Boundary Condition Sets");
+		_bcTable.deleteCells();
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
 		gbc.gridwidth = 1; 
@@ -368,6 +369,17 @@ public abstract class AbstractForecastPanel extends RmaJPanel
 		}
 	}
 
+	@Override
+	public void setVisible(boolean visible)
+	{
+		super.setVisible(visible);
+		if(visible && getTableForPanel() != null && getTableForPanel().getSelectedRow() < 0)
+		{
+			clearPanel();
+		}
+	}
+
+	protected abstract void clearPanel();
 
 
 	/**

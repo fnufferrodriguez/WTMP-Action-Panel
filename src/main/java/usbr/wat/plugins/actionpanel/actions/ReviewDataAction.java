@@ -12,6 +12,7 @@ import java.awt.event.ActionEvent;
 import javax.swing.AbstractAction;
 import javax.swing.JOptionPane;
 
+import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.editors.UsbrG2dDialog;
 
@@ -22,24 +23,23 @@ import usbr.wat.plugins.actionpanel.editors.UsbrG2dDialog;
 @SuppressWarnings("serial")
 public class ReviewDataAction extends AbstractAction
 {
-	private ActionsWindow _parent;
-	public ReviewDataAction(ActionsWindow parent)
+	public ReviewDataAction()
 	{
 		super("Review Data");
 		setEnabled(false);
-		_parent = parent;
 	}
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
-		if ( _parent.getSimulationGroup() == null )
+		ActionsWindow parent = ActionPanelPlugin.getInstance().getActionsWindow();
+		if (parent.getSimulationGroup() == null )
 		{
-			JOptionPane.showMessageDialog(_parent,"Please create or select a Simulation Group first",
+			JOptionPane.showMessageDialog(parent,"Please create or select a Simulation Group first",
 					"No Simulation Group Selected", JOptionPane.INFORMATION_MESSAGE);
 			return ;
 			
 		}
-		UsbrG2dDialog dialog = new UsbrG2dDialog(_parent);
+		UsbrG2dDialog dialog = new UsbrG2dDialog(parent);
 		dialog.setVisible(true);
 	}
 

@@ -651,6 +651,16 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 		}
 	}
 
+	private void deleteEnsembleSetsFor(BcData bcData)
+	{
+		List<EnsembleSet> esetsToRemove = getEnsembleSetsUsingBcData(bcData);
+		for (Map.Entry<String, List<EnsembleSet>> entry : _ensembleSets.entrySet())
+		{
+			List<EnsembleSet> esets = entry.getValue();
+			esets.removeIf(esetsToRemove::contains);
+		}
+	}
+
 	public List<EnsembleSet> getEnsembleSetsUsingTempTargetSet(TemperatureTargetSet temperatureTargetSet)
 	{
 		LinkedHashSet<EnsembleSet> eSetsUsingTTSet = new LinkedHashSet<>();
@@ -777,5 +787,74 @@ public class ForecastSimGroup extends AbstractSimulationGroup
 	{
 		_tempTargetSets.remove(set);
 		deleteEnsembleSetsFor(set);
+	}
+
+	public void removeOperationsData(OperationsData operationsData)
+	{
+		_opsData.remove(operationsData);
+		List<BcData> bcDataUsingOpsData = getBcDataUsingOperationsData(operationsData);
+		for(BcData bcDataToRemove : bcDataUsingOpsData)
+		{
+			removeBcData(bcDataToRemove);
+		}
+	}
+
+	public void removeMetData(MeteorlogicData meteorlogicData)
+	{
+		_metData.remove(meteorlogicData);
+		List<BcData> bcDataUsingOpsData = getBcDataUsingMetData(meteorlogicData);
+		for(BcData bcDataToRemove : bcDataUsingOpsData)
+		{
+			removeBcData(bcDataToRemove);
+		}
+	}
+
+	public void removeBcData(BcData bcData)
+	{
+		_bcData.remove(bcData);
+		deleteEnsembleSetsFor(bcData);
+	}
+
+	public List<BcData> getBcDataUsingOperationsData(OperationsData operationsData)
+	{
+		List<BcData> retVal = new ArrayList<>();
+		for(BcData bc : _bcData)
+		{
+			if(bc.getOperationsData() == operationsData)
+			{
+				retVal.add(bc);
+			}
+		}
+		return retVal;
+	}
+
+	public List<BcData> getBcDataUsingMetData(MeteorlogicData metData)
+	{
+		List<BcData> retVal = new ArrayList<>();
+		for(BcData bc : _bcData)
+		{
+			if(bc.getMeteorogicalData() == metData)
+			{
+				retVal.add(bc);
+			}
+		}
+		return retVal;
+	}
+
+	public List<EnsembleSet> getEnsembleSetsUsingBcData(BcData bcData)
+	{
+		LinkedHashSet<EnsembleSet> eSetsUsingTTSet = new LinkedHashSet<>();
+		for (Map.Entry<String, List<EnsembleSet>> entry : _ensembleSets.entrySet())
+		{
+			List<EnsembleSet> esets = entry.getValue();
+			for(EnsembleSet eset : esets)
+			{
+				if(Objects.equals(eset.getBcData(), bcData))
+				{
+					eSetsUsingTTSet.add(eset);
+				}
+			}
+		}
+		return new ArrayList<>(eSetsUsingTTSet);
 	}
 }

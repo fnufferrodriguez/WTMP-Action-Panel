@@ -637,12 +637,12 @@ public class TempTargetPanel extends AbstractForecastPanel
 		}
 	}
 
-	private void clearPanel()
+	@Override
+	protected void clearPanel()
 	{
 		_ttTable.clearAll();
 		removeAllColumns();
-		_ttInfoTable.commitEdit(true);
-		_ttInfoTable.setValueAt("", 0,0);
+		_ttInfoTable.deleteCells();
 	}
 
 }
