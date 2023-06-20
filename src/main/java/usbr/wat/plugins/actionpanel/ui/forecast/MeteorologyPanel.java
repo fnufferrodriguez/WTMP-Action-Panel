@@ -291,6 +291,7 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 			}
 			else
 			{
+				_plotPanel.clearPanel();
 				_plotPanel.setEnabled(false);
 			}
 			_plotPanel.fillPlotPanel();
