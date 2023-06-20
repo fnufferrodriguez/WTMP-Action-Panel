@@ -149,7 +149,7 @@ public class ActionsPanel extends JPanel
 		gbc.insets    = RmaInsets.INSETS5505;
 		//add(button, gbc);
 	
-		_updateDataAction = new UpdateDataAction(_parent);
+		_updateDataAction = new UpdateDataAction();
 		button = new JButton(_updateDataAction);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
@@ -161,7 +161,7 @@ public class ActionsPanel extends JPanel
 		gbc.insets    = RmaInsets.INSETS5505;
 		add(button, gbc);
 	
-		_reviewDataAction = new ReviewDataAction(_parent);
+		_reviewDataAction = new ReviewDataAction();
 		button = new JButton(_reviewDataAction);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;

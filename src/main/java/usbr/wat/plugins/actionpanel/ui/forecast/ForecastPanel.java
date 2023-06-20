@@ -15,13 +15,11 @@ import java.util.List;
 import javax.swing.JTabbedPane;
 
 import hec2.wat.model.WatSimulation;
-import org.jdesktop.swingx.JXLabel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJPanel;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.model.ResultsData;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
-import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
 import usbr.wat.plugins.actionpanel.ui.SimulationGroupPanel;
 import usbr.wat.plugins.actionpanel.ui.forecast.temptarget.TempTargetPanel;
 

@@ -19,16 +19,20 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 
 import javax.swing.JButton;
+import javax.swing.JOptionPane;
 
 import com.google.common.flogger.FluentLogger;
 import com.rma.io.FileManagerImpl;
 import com.rma.io.RmaFile;
 import com.rma.model.Project;
+import hec.lang.NamedType;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
+import usbr.wat.plugins.actionpanel.model.forecast.BcData;
+import usbr.wat.plugins.actionpanel.model.forecast.EnsembleSet;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastConfigFiles;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.MeteorlogicData;
@@ -125,6 +129,12 @@ public class MeteorologyPanel extends AbstractForecastPanel
 		getTableForPanel().getSelectionModel().addListSelectionListener(e->tableRowSelected(_metTable.getSelectedRow()));
 	}
 
+	@Override
+	protected void clearPanel()
+	{
+		_plotPanel.clearPanel();
+	}
+
 	/**
 	 * @return
 	 */
@@ -146,6 +156,7 @@ public class MeteorologyPanel extends AbstractForecastPanel
 			metTable.appendRow(row);
 			_fsg.getMeteorlogyData().add(metData.get(i));
 			_fsg.setModified(true);
+			tableRowSelected(metTable.getRowCount()-1);
 		}
 
 	}
@@ -283,6 +294,8 @@ public class MeteorologyPanel extends AbstractForecastPanel
 				_metInfoTable.appendRow(row);
 				_plotPanel.setYear(metData.getYear());
 				_plotPanel.setEnabled(true);
+				_metTable.setRowSelectionInterval(selRow, selRow, false);
+				_metTable.updateSelection(selRow, 0, false, false);
 			}
 			else
 			{
@@ -293,9 +306,52 @@ public class MeteorologyPanel extends AbstractForecastPanel
 	}
 
 	@Override
-	public void tableRowDeleteClicked(int selectedRow)
+	public void tableRowDeleteClicked(int rowToDelete)
 	{
-		//TODO
+		Object value = _metTable.getValueAt(rowToDelete, 0);
+		if (_fsg != null && value instanceof MeteorlogicData)
+		{
+			MeteorlogicData metData = (MeteorlogicData) value;
+			List<BcData> bcDataUsingMetData = _fsg.getBcDataUsingMetData(metData);
+			List<EnsembleSet> eSetsUsingBcData = bcDataUsingMetData.stream().map(bcData -> _fsg.getEnsembleSetsUsingBcData(bcData))
+					.flatMap(List::stream)
+					.collect(Collectors.toList());
+			StringBuilder confirmMessage = new StringBuilder("Do you want to delete meteorologic data " + metData.getName() + "?");
+			if (!bcDataUsingMetData.isEmpty())
+			{
+				List<String> bcDataNames = bcDataUsingMetData.stream()
+						.map(NamedType::getName)
+						.collect(Collectors.toList());
+				confirmMessage = new StringBuilder("Deleting " + metData.getName() + " will also delete the following boundary condition sets that use it:" +
+						"\n\n" + String.join(",\n", bcDataNames));
+				if (!eSetsUsingBcData.isEmpty())
+				{
+					List<String> eSetNames = eSetsUsingBcData.stream()
+							.map(NamedType::getName)
+							.collect(Collectors.toList());
+					confirmMessage.append("\n\nIt will also delete the following ensemble sets which use those boundary condition sets:");
+					confirmMessage.append("\n\n");
+					confirmMessage.append(String.join(",\n", eSetNames));
+				}
+				confirmMessage.append("\n\nDo you want to continue?");
+			}
+			int opt = JOptionPane.showConfirmDialog(this, confirmMessage.toString(),
+					"Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+			if (opt == JOptionPane.YES_OPTION)
+			{
+				_fsg.removeMetData(metData);
+				_fsg.saveData();
+				if(!bcDataUsingMetData.isEmpty())
+				{
+					getPanelForTable(_bcTable).setSimulationGroup(_fsg);
+				}
+				if(!eSetsUsingBcData.isEmpty())
+				{
+					_forecastPanel.refreshSimulationPanel();
+				}
+				_metTable.deleteRow(rowToDelete);
+			}
+		}
 	}
 
 }

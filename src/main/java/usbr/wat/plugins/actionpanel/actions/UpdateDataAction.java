@@ -23,17 +23,15 @@ import usbr.wat.plugins.actionpanel.model.AbstractSimulationGroup;
 @SuppressWarnings("serial")
 public class UpdateDataAction extends AbstractAction
 {
-	private ActionsWindow _parent;
-	public UpdateDataAction(ActionsWindow parent)
+	public UpdateDataAction()
 	{
 		super("Get/Update Data");
 		setEnabled(false);
-		_parent = parent;
 	}
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
-		updateData(_parent.getSimulationGroup());
+		updateData(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup());
 	}
 	/**
 	 * @param simulationGroup

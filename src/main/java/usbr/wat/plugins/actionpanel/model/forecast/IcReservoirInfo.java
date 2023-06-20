@@ -25,7 +25,7 @@ public class IcReservoirInfo
 	}
 
 	/**
-	 * @param string
+	 * @param reservoirName
 	 */
 	public void setReservoirName(String reservoirName)
 	{
@@ -38,7 +38,7 @@ public class IcReservoirInfo
 	}
 
 	/**
-	 * @param string
+	 * @param fileName
 	 */
 	public void addProfileFileName(String fileName)
 	{

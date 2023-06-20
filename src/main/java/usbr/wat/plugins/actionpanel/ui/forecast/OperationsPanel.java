@@ -23,14 +23,21 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.swing.JButton;
+import javax.swing.JOptionPane;
+import javax.swing.UIManager;
 
 import com.rma.model.Project;
 import com.rma.swing.excel.ExcelTable;
 
+import hec.lang.NamedType;
+import jnr.ffi.annotations.In;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -40,6 +47,8 @@ import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
+import usbr.wat.plugins.actionpanel.model.forecast.BcData;
+import usbr.wat.plugins.actionpanel.model.forecast.EnsembleSet;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.OperationsData;
 
@@ -50,6 +59,8 @@ import usbr.wat.plugins.actionpanel.model.forecast.OperationsData;
 public class OperationsPanel extends AbstractForecastPanel
 {
 	private static Logger LOGGER = Logger.getLogger(OperationsPanel.class.getName());
+	private static final String OPS_TABLE_FONT_CONVERSION_SCALE_PERCENT = "WTMP.OperationsPanel.Font.ConversionScale";
+	private static final int DEFAULT_OPS_TABLE_FONT_CONVERSION_SCALE_PERCENT = 60;
 	private static final LocalDateTime EXCEL_BASE_DATE = LocalDateTime.of(1899, 12, 31, 0, 0);
 	private static final Pattern EXCEL_PATTERN_MMM = Pattern.compile("mmm");
 	private static final Pattern EXCEL_PATTERN_H = Pattern.compile("h");
@@ -171,6 +182,16 @@ public class OperationsPanel extends AbstractForecastPanel
 	}
 
 	@Override
+	public void setVisible(boolean visible)
+	{
+		super.setVisible(visible);
+		if(visible && _opsTable.getSelectedRow() < 0)
+		{
+			clearPanel();
+		}
+	}
+
+	@Override
 	public void setSimulationGroup(ForecastSimGroup fsg)
 	{
 		clearPanel();
@@ -196,10 +217,12 @@ public class OperationsPanel extends AbstractForecastPanel
 		}
 	}
 
-	private void clearPanel()
+	@Override
+	protected void clearPanel()
 	{
 		_lowerPanel.remove(_excelTable.getScrollPane());
 		_excelTable = new RmaJTable(this, new String[]{""});
+		_excelTable.deleteCells();
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;
@@ -231,14 +254,63 @@ public class OperationsPanel extends AbstractForecastPanel
 
 				_opInfoTable.appendRow(row);
 				displayOpsData(opsData);
+				_opsTable.setRowSelectionInterval(selRow, selRow, false);
+				_opsTable.updateSelection(selRow, 0, false, false);
+			}
+			else
+			{
+				clearPanel();
 			}
 		}
 	}
 
 	@Override
-	public void tableRowDeleteClicked(int selectedRow)
+	public void tableRowDeleteClicked(int rowToDelete)
 	{
-		//TODO
+		Object value = _opsTable.getValueAt(rowToDelete, 0);
+		if (_fsg != null && value instanceof OperationsData)
+		{
+			OperationsData operationsData = (OperationsData) value;
+			List<BcData> bcDataUsingOpsData = _fsg.getBcDataUsingOperationsData(operationsData);
+			List<EnsembleSet> eSetsUsingBcData = bcDataUsingOpsData.stream().map(bcData -> _fsg.getEnsembleSetsUsingBcData(bcData))
+					.flatMap(List::stream)
+					.collect(Collectors.toList());
+			StringBuilder confirmMessage = new StringBuilder("Do you want to delete operations data " + operationsData.getName() + "?");
+			if (!bcDataUsingOpsData.isEmpty())
+			{
+				List<String> bcDataNames = bcDataUsingOpsData.stream()
+						.map(NamedType::getName)
+						.collect(Collectors.toList());
+				confirmMessage = new StringBuilder("Deleting " + operationsData.getName() + " will also delete the following boundary condition sets that use it:" +
+						"\n\n" + String.join(",\n", bcDataNames));
+				if (!eSetsUsingBcData.isEmpty())
+				{
+					List<String> eSetNames = eSetsUsingBcData.stream()
+							.map(NamedType::getName)
+							.collect(Collectors.toList());
+					confirmMessage.append("\n\nIt will also delete the following ensemble sets which use those boundary condition sets:");
+					confirmMessage.append("\n\n");
+					confirmMessage.append(String.join(",\n", eSetNames));
+				}
+				confirmMessage.append("\n\nDo you want to continue?");
+			}
+			int opt = JOptionPane.showConfirmDialog(this, confirmMessage.toString(),
+					"Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+			if (opt == JOptionPane.YES_OPTION)
+			{
+				_fsg.removeOperationsData(operationsData);
+				_fsg.saveData();
+				if(!bcDataUsingOpsData.isEmpty())
+				{
+					getPanelForTable(_bcTable).setSimulationGroup(_fsg);
+				}
+				if(!eSetsUsingBcData.isEmpty())
+				{
+					_forecastPanel.refreshSimulationPanel();
+				}
+				_opsTable.deleteRow(rowToDelete);
+			}
+		}
 	}
 
 	private void displayOpsData(OperationsData opsData)
@@ -302,6 +374,18 @@ public class OperationsPanel extends AbstractForecastPanel
 	{
 		Workbook workbook = new XSSFWorkbook();
 		Sheet sheet = workbook.createSheet("My Sheet");
+		Font font = workbook.createFont();
+		java.awt.Font fontToUse = UIManager.getFont("Table.font");
+		int fontSize = fontToUse.getSize();
+		Integer scalePercent = Integer.getInteger(OPS_TABLE_FONT_CONVERSION_SCALE_PERCENT, DEFAULT_OPS_TABLE_FONT_CONVERSION_SCALE_PERCENT);
+		double scale = scalePercent/100.0;
+		font.setFontName(fontToUse.getFontName());
+		font.setFontHeightInPoints((short) (fontSize * scale));
+
+		// Apply the font to the cell
+		CellStyle cellStyle = workbook.createCellStyle();
+		cellStyle.setFont(font);
+
 		String line;
 		int rowNum = 0;
 		while ((line = reader.readLine()) != null)
@@ -318,6 +402,7 @@ public class OperationsPanel extends AbstractForecastPanel
 					val = "View Results:";
 				}
 				cell.setCellValue(val);
+				cell.setCellStyle(cellStyle);
 			}
 		}
 		return sheet;

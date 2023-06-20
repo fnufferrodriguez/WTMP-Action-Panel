@@ -355,5 +355,11 @@ public class BoundaryConditionPlotPanel extends EnabledJPanel
 	{
 		return _plotPanel;
 	}
-	
+
+	public void clearPanel()
+	{
+		_plotPanel.clearPanel();
+		_dssPathCombo.setSelectedIndex(-1);
+		_dssPathCombo.setEnabled(false);
+	}
 }
