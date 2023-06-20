@@ -7,7 +7,9 @@
  */
 package usbr.wat.plugins.actionpanel.ui.forecast;
 
-import java.awt.*;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

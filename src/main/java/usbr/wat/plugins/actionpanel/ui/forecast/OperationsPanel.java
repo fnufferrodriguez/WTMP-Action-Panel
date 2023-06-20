@@ -7,7 +7,6 @@
  */
 package usbr.wat.plugins.actionpanel.ui.forecast;
 
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.io.BufferedReader;
@@ -26,13 +25,15 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import javax.swing.*;
-import javax.swing.table.TableCellRenderer;
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
+import javax.swing.UIManager;
 
 import com.rma.model.Project;
 import com.rma.swing.excel.ExcelTable;
 
 import hec.lang.NamedType;
+import jnr.ffi.annotations.In;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -58,6 +59,8 @@ import usbr.wat.plugins.actionpanel.model.forecast.OperationsData;
 public class OperationsPanel extends AbstractForecastPanel
 {
 	private static Logger LOGGER = Logger.getLogger(OperationsPanel.class.getName());
+	private static final String OPS_TABLE_FONT_CONVERSION_SCALE_PERCENT = "WTMP.OperationsPanel.Font.ConversionScale";
+	private static final int DEFAULT_OPS_TABLE_FONT_CONVERSION_SCALE_PERCENT = 60;
 	private static final LocalDateTime EXCEL_BASE_DATE = LocalDateTime.of(1899, 12, 31, 0, 0);
 	private static final Pattern EXCEL_PATTERN_MMM = Pattern.compile("mmm");
 	private static final Pattern EXCEL_PATTERN_H = Pattern.compile("h");
@@ -272,25 +275,26 @@ public class OperationsPanel extends AbstractForecastPanel
 			List<EnsembleSet> eSetsUsingBcData = bcDataUsingOpsData.stream().map(bcData -> _fsg.getEnsembleSetsUsingBcData(bcData))
 					.flatMap(List::stream)
 					.collect(Collectors.toList());
-			String confirmMessage = "Do you want to delete operations data " + operationsData.getName() + "?";
+			StringBuilder confirmMessage = new StringBuilder("Do you want to delete operations data " + operationsData.getName() + "?");
 			if (!bcDataUsingOpsData.isEmpty())
 			{
 				List<String> bcDataNames = bcDataUsingOpsData.stream()
 						.map(NamedType::getName)
 						.collect(Collectors.toList());
-				confirmMessage = "Deleting " + operationsData.getName() + " will also delete the following boundary condition sets that use it:" +
-						"\n\n" + String.join(",\n", bcDataNames);
+				confirmMessage = new StringBuilder("Deleting " + operationsData.getName() + " will also delete the following boundary condition sets that use it:" +
+						"\n\n" + String.join(",\n", bcDataNames));
 				if (!eSetsUsingBcData.isEmpty())
 				{
 					List<String> eSetNames = eSetsUsingBcData.stream()
 							.map(NamedType::getName)
 							.collect(Collectors.toList());
-					confirmMessage += "\n\nIt will also delete the following ensemble sets which use those boundary condition sets:"
-							+ "\n\n" + String.join(",\n", eSetNames);
+					confirmMessage.append("\n\nIt will also delete the following ensemble sets which use those boundary condition sets:");
+					confirmMessage.append("\n\n");
+					confirmMessage.append(String.join(",\n", eSetNames));
 				}
-				confirmMessage += "\n\nDo you want to continue?";
+				confirmMessage.append("\n\nDo you want to continue?");
 			}
-			int opt = JOptionPane.showConfirmDialog(this, confirmMessage,
+			int opt = JOptionPane.showConfirmDialog(this, confirmMessage.toString(),
 					"Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 			if (opt == JOptionPane.YES_OPTION)
 			{
@@ -373,9 +377,10 @@ public class OperationsPanel extends AbstractForecastPanel
 		Font font = workbook.createFont();
 		java.awt.Font fontToUse = UIManager.getFont("Table.font");
 		int fontSize = fontToUse.getSize();
-		double fontConversionFactor = 0.6;
+		Integer scalePercent = Integer.getInteger(OPS_TABLE_FONT_CONVERSION_SCALE_PERCENT, DEFAULT_OPS_TABLE_FONT_CONVERSION_SCALE_PERCENT);
+		double scale = scalePercent/100.0;
 		font.setFontName(fontToUse.getFontName());
-		font.setFontHeightInPoints((short) (fontSize * fontConversionFactor));
+		font.setFontHeightInPoints((short) (fontSize * scale));
 
 		// Apply the font to the cell
 		CellStyle cellStyle = workbook.createCellStyle();

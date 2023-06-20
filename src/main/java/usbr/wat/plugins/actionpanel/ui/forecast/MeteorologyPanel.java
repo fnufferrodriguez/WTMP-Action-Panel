@@ -316,25 +316,26 @@ public class MeteorologyPanel extends AbstractForecastPanel
 			List<EnsembleSet> eSetsUsingBcData = bcDataUsingMetData.stream().map(bcData -> _fsg.getEnsembleSetsUsingBcData(bcData))
 					.flatMap(List::stream)
 					.collect(Collectors.toList());
-			String confirmMessage = "Do you want to delete meteorologic data " + metData.getName() + "?";
+			StringBuilder confirmMessage = new StringBuilder("Do you want to delete meteorologic data " + metData.getName() + "?");
 			if (!bcDataUsingMetData.isEmpty())
 			{
 				List<String> bcDataNames = bcDataUsingMetData.stream()
 						.map(NamedType::getName)
 						.collect(Collectors.toList());
-				confirmMessage = "Deleting " + metData.getName() + " will also delete the following boundary condition sets that use it:" +
-						"\n\n" + String.join(",\n", bcDataNames);
+				confirmMessage = new StringBuilder("Deleting " + metData.getName() + " will also delete the following boundary condition sets that use it:" +
+						"\n\n" + String.join(",\n", bcDataNames));
 				if (!eSetsUsingBcData.isEmpty())
 				{
 					List<String> eSetNames = eSetsUsingBcData.stream()
 							.map(NamedType::getName)
 							.collect(Collectors.toList());
-					confirmMessage += "\n\nIt will also delete the following ensemble sets which use those boundary condition sets:"
-							+ "\n\n" + String.join(",\n", eSetNames);
+					confirmMessage.append("\n\nIt will also delete the following ensemble sets which use those boundary condition sets:");
+					confirmMessage.append("\n\n");
+					confirmMessage.append(String.join(",\n", eSetNames));
 				}
-				confirmMessage += "\n\nDo you want to continue?";
+				confirmMessage.append("\n\nDo you want to continue?");
 			}
-			int opt = JOptionPane.showConfirmDialog(this, confirmMessage,
+			int opt = JOptionPane.showConfirmDialog(this, confirmMessage.toString(),
 					"Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 			if (opt == JOptionPane.YES_OPTION)
 			{
