@@ -49,6 +49,7 @@ import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
 import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetTimeStep;
 import usbr.wat.plugins.actionpanel.ui.forecast.AbstractForecastPanel;
+import usbr.wat.plugins.actionpanel.ui.forecast.ImportForecastWindow;
 import usbr.wat.plugins.actionpanel.ui.forecast.ForecastPanel;
 
 /**
@@ -78,7 +79,13 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 
 	private void addPanelListeners()
 	{
-		_createButton.addActionListener(e -> new TempTargetImportDialog(SwingUtilities.getWindowAncestor(this), getExistingSetNames(), _fsg, new TempTargetConsumer(this)));
+		_createButton.addActionListener(e -> importForecastData(null));
+	}
+
+	@Override
+	protected void importForecastData(ImportForecastWindow dlg)
+	{
+		new TempTargetImportDialog(SwingUtilities.getWindowAncestor(this), getExistingSetNames(), _fsg, new TempTargetConsumer(this));
 	}
 
 	private List<String> getExistingSetNames()

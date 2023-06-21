@@ -143,19 +143,28 @@ public class OperationsPanel extends AbstractForecastPanel<OperationsData>
 	protected void addListeners()
 	{
 		super.addListeners();
-		_importButton.addActionListener(e->importOperationsAction());
+		_importButton.addActionListener(e->importForecastData(null));
 	}
 
-	private void importOperationsAction()
+	@Override
+	protected void importForecastData(ImportForecastWindow dlg)
 	{
-		ImportOperationsWindow dlg = new ImportOperationsWindow(ActionPanelPlugin.getInstance().getActionsWindow());
-		dlg.fillForm(_fsg);
-		dlg.setVisible(true);
-		if ( dlg.isCanceled())
+		ImportOperationsWindow importOpsWindow;
+		if(dlg == null)
+		{
+			importOpsWindow = new ImportOperationsWindow(ActionPanelPlugin.getInstance().getActionsWindow());
+			importOpsWindow.fillForm(_fsg);
+		}
+		else
+		{
+			importOpsWindow = (ImportOperationsWindow) dlg;
+		}
+		importOpsWindow.setVisible(true);
+		if ( importOpsWindow.isCanceled())
 		{
 			return;
 		}
-		importData(_fsg, _opsTable, dlg, _fsg.getOperationsData(), dlg.getOperationsData());
+		importData(_fsg, _opsTable, importOpsWindow, _fsg.getOperationsData(), importOpsWindow.getOperationsData());
 	}
 
 	@Override
@@ -275,10 +284,13 @@ public class OperationsPanel extends AbstractForecastPanel<OperationsData>
 		List<EnsembleSet> eSetsUsingBcData = bcDataUsingOpsData.stream().map(bcData -> _fsg.getEnsembleSetsUsingBcData(bcData))
 				.flatMap(List::stream)
 				.collect(Collectors.toList());
-		String initialMessage = "Do you want to delete operations data " + operationsData.getName() + "?";
+		StringBuilder initialMessage = new StringBuilder("Do you want to delete operations data " + operationsData.getName() + "?");
 		if(deletingDueToOverwrite)
 		{
-			initialMessage = initialMessage.replace("delete", "overwrite");
+			StringBuilder overwriteMessage = new StringBuilder(operationsData.getName() + " already exists");
+			overwriteMessage.append("\n");
+			overwriteMessage.append(initialMessage.toString().replace("delete", "overwrite existing"));
+			initialMessage = overwriteMessage;
 		}
 		StringBuilder confirmMessage = new StringBuilder(initialMessage);
 		if (!bcDataUsingOpsData.isEmpty())
@@ -289,7 +301,7 @@ public class OperationsPanel extends AbstractForecastPanel<OperationsData>
 			String action = "Deleting";
 			if(deletingDueToOverwrite)
 			{
-				action = "Overwriting";
+				action = operationsData.getName() + " already exists. Overwriting";
 			}
 			confirmMessage = new StringBuilder(action + " " + operationsData.getName() + " will also delete the following boundary condition sets that use it:" +
 					"\n\n" + String.join(",\n", bcDataNames));

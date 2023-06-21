@@ -43,7 +43,7 @@ import usbr.wat.plugins.actionpanel.model.forecast.MeteorlogicData;
  * @author mark
  *
  */
-public class ImportMetDataWindow extends CancelableWindow
+public class ImportMetDataWindow extends ImportForecastWindow
 {
 	private static final String AVE_TEMP_FILE = ForecastConfigFiles.getRelativeYearlyTempDataFile();
 	private RmaJTextField _nameFld;

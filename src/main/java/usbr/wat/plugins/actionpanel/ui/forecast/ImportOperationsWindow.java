@@ -29,7 +29,7 @@ import rma.util.RMAFilenameFilter;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.OperationsData;
 
-public class ImportOperationsWindow extends CancelableWindow
+public class ImportOperationsWindow extends ImportForecastWindow
 {
 	private RmaJTextField _nameFld;
 	private RmaJDescriptionField _descFld;

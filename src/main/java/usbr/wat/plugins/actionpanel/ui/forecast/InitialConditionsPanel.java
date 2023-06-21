@@ -646,6 +646,12 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 	{
 		return _initialConditionsTable;
 	}
+
+	@Override
+	protected void importForecastData(ImportForecastWindow dlg)
+	{
+		//no import button for initial conditions (read from mapping file)
+	}
 	
 	@Override
 	protected void savePanel()

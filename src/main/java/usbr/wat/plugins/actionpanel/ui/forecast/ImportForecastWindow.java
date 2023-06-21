@@ -14,10 +14,10 @@ import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-public abstract class CancelableWindow extends RmaJDialog
+public abstract class ImportForecastWindow extends RmaJDialog
 {
     protected boolean _canceled = true;
-    public CancelableWindow(Window parent, String title, boolean modal)
+    public ImportForecastWindow(Window parent, String title, boolean modal)
     {
         super(parent, title, modal);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);

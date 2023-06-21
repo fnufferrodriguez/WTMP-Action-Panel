@@ -406,7 +406,7 @@ public abstract class AbstractForecastPanel<T extends NamedType> extends RmaJPan
 	}
 
 	@SuppressWarnings("unchecked")
-	protected void importData(ForecastSimGroup fsg, ForecastTable table, CancelableWindow dlg, List<T> dataList, T newData)
+	protected void importData(ForecastSimGroup fsg, ForecastTable table, ImportForecastWindow dlg, List<T> dataList, T newData)
 	{
 		if(table.isNameUsed(newData.getName()))
 		{
@@ -417,12 +417,7 @@ public abstract class AbstractForecastPanel<T extends NamedType> extends RmaJPan
 				T existingOpsData = (T) value;
 				if(!deleteForOverwrite(table, dataList, existingOpsData, newData, rowToReplace))
 				{
-					dlg.setVisible(true);
-					if ( dlg.isCanceled())
-					{
-						return;
-					}
-					importData(fsg, table, dlg, dataList, newData);
+					importForecastData(dlg);
 				}
 			}
 		}
@@ -458,6 +453,7 @@ public abstract class AbstractForecastPanel<T extends NamedType> extends RmaJPan
 	 */
 	protected abstract void buildLowerPanel(EnabledJPanel lowerPanel);
 	protected abstract boolean delete(T data, boolean deleteDueToOverwrite);
+	protected abstract void importForecastData(ImportForecastWindow dlg);
 	public abstract ForecastTable getTableForPanel();
 	
 	/**

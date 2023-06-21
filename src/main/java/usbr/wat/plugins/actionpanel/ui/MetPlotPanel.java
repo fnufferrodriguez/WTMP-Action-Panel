@@ -18,9 +18,11 @@ import javax.swing.JLabel;
 
 import com.rma.io.DssFileManagerImpl;
 import com.rma.model.Project;
+import hec.geometry.Axis;
 import hec.gfx2d.G2dObject;
 import hec.gfx2d.G2dPanel;
 import hec.gfx2d.TimeSeriesDataSet;
+import hec.gfx2d.Viewport;
 import hec.heclib.util.HecTime;
 import hec.io.DSSIdentifier;
 import hec.io.TimeSeriesContainer;
@@ -32,7 +34,7 @@ import rma.swing.list.RmaListModel;
 import usbr.wat.plugins.actionpanel.ui.forecast.DssLocation;
 import usbr.wat.plugins.actionpanel.ui.forecast.MetLocation;
 
-public class MetPlotPanel<T> extends EnabledJPanel
+public class MetPlotPanel extends EnabledJPanel
 {
 	private JLabel _label;
 	private RmaJComboBox<MetLocation> _locationCombo;
@@ -40,6 +42,8 @@ public class MetPlotPanel<T> extends EnabledJPanel
 	private RmaNavigationPanel _locationNavPanel;
 	private G2dPanel _plotPanel;
 	private RmaNavigationPanel _dssNavPanel;
+	private double _maxYScale = Double.MIN_VALUE;
+	private double _minYScale = Double.MAX_VALUE;
 	private int _year;
 
 	public MetPlotPanel()
@@ -173,6 +177,8 @@ public class MetPlotPanel<T> extends EnabledJPanel
 			return;
 		}
 		DssLocation dssLocation = (DssLocation) _dssRecordCombo.getSelectedItem();
+		_maxYScale = Double.MIN_VALUE;
+		_minYScale = Double.MAX_VALUE;
 		fillPlotPanel(dssLocation);
 	}
 	public void fillPlotPanel()
@@ -185,6 +191,28 @@ public class MetPlotPanel<T> extends EnabledJPanel
 		else
 		{
 			fillPlotPanel(location);
+		}
+	}
+
+	private void fixZoomScale()
+	{
+		Viewport[] viewports = _plotPanel.getViewports();
+		if ( viewports != null && viewports.length > 0 )
+		{
+			Axis yaxis = viewports[0].getAxis("Y1");
+			if(yaxis.getMax() > _maxYScale)
+			{
+				_maxYScale = yaxis.getMax();
+			}
+			if(yaxis.getMin() < _minYScale)
+			{
+				_minYScale = yaxis.getMin();
+			}
+			yaxis.setMaximumLimit(_maxYScale);
+			yaxis.setMinimumLimit(_minYScale);
+			yaxis.setViewLimits(_minYScale, _maxYScale);
+			_plotPanel.setVisible(true);
+			_plotPanel.repaint();
 		}
 	}
 
@@ -203,6 +231,7 @@ public class MetPlotPanel<T> extends EnabledJPanel
 		List<G2dObject> v = new ArrayList<>();
 		v.add(tsds);
 		_plotPanel.buildComponents(v);
+		fixZoomScale();
 	}
 
 	public G2dPanel getPlotPanel()

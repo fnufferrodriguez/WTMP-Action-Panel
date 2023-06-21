@@ -120,11 +120,15 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 	{
 		boolean confirmDelete = false;
 		List<EnsembleSet> eSetsUsingBcData = _fsg.getEnsembleSetsUsingBcData(bcData);
-		String confirmMessage = "Do you want to delete boundary condition set " + bcData.getName() + "?";
+		StringBuilder initialMessage = new StringBuilder("Do you want to delete boundary condition set " + bcData.getName() + "?");
 		if(deleteDueToOverwrite)
 		{
-			confirmMessage = confirmMessage.replace("delete", "overwrite");
+			StringBuilder overwriteMessage = new StringBuilder(bcData.getName() + " already exists");
+			overwriteMessage.append("\n");
+			overwriteMessage.append(initialMessage.toString().replace("delete", "overwrite existing"));
+			initialMessage = overwriteMessage;
 		}
+		StringBuilder confirmMessage = new StringBuilder(initialMessage);
 		if(!eSetsUsingBcData.isEmpty())
 		{
 			List<String> eSetNames = eSetsUsingBcData.stream()
@@ -133,13 +137,16 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 			String action = "Deleting";
 			if(deleteDueToOverwrite)
 			{
-				action = "Overwriting";
+				action = bcData.getName() + " already exists. Overwriting";
 			}
-			confirmMessage = action + " " + bcData.getName() + " will also delete the following ensemble sets that use it:" +
-					"\n\n" + String.join(",\n", eSetNames) + "\n\nDo you want to continue?";
+			confirmMessage = new StringBuilder(action + " " + bcData.getName() + " will also delete the following ensemble sets that use it:");
+			confirmMessage.append("\n\n");
+			confirmMessage.append(String.join(",\n", eSetNames));
+			confirmMessage.append("\n\n");
+			confirmMessage.append("Do you want to continue?");
 		}
 		String title = "Confirm " + (deleteDueToOverwrite ? "Overwrite" : "Delete");
-		int opt = JOptionPane.showConfirmDialog(this, confirmMessage,
+		int opt = JOptionPane.showConfirmDialog(this, confirmMessage.toString(),
 				title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 		if(opt == JOptionPane.YES_OPTION)
 		{
@@ -169,19 +176,28 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 	protected void addListeners()
 	{
 		super.addListeners();
-		_createButton.addActionListener(e->createBcAction());
+		_createButton.addActionListener(e->importForecastData(null));
 	}
 
-	private void createBcAction()
+	@Override
+	protected void importForecastData(ImportForecastWindow dlg)
 	{
-		CreateBcWindow dlg = new CreateBcWindow(_fsg, ActionPanelPlugin.getInstance().getActionsWindow());
-		dlg.fillForm(_fsg);
-		dlg.setVisible(true);
-		if ( dlg.isCanceled())
+		CreateBcWindow createBcWindow;
+		if(dlg == null)
+		{
+			createBcWindow = new CreateBcWindow(_fsg, ActionPanelPlugin.getInstance().getActionsWindow());
+			createBcWindow.fillForm(_fsg);
+		}
+		else
+		{
+			createBcWindow = (CreateBcWindow) dlg;
+		}
+		createBcWindow.setVisible(true);
+		if ( createBcWindow.isCanceled())
 		{
 			return;
 		}
-		List<BcData> bcDataList = dlg.getBcData();
+		List<BcData> bcDataList = createBcWindow.getBcData();
 		try
 		{
 			_plotPanel.getPlotPanel().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
@@ -196,7 +212,7 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 			}
 			else
 			{
-				applyScriptToBCDataWithAnalysisPeriod(dlg, bcDataList, _bcTable);
+				applyScriptToBCDataWithAnalysisPeriod(createBcWindow, bcDataList, _bcTable);
 			}
 		}
 		finally

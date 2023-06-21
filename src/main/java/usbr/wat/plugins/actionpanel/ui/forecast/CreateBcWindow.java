@@ -27,7 +27,7 @@ import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.model.forecast.MeteorlogicData;
 import usbr.wat.plugins.actionpanel.model.forecast.OperationsData;
 
-public class CreateBcWindow extends CancelableWindow
+public class CreateBcWindow extends ImportForecastWindow
 {
 	private final ForecastSimGroup _fsg;
 	private ButtonCmdPanel _cmdPanel;

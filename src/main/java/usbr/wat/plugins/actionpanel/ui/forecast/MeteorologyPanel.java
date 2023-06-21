@@ -125,7 +125,7 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 	protected void addListeners()
 	{
 		super.addListeners();
-		_importButton.addActionListener(e->displayImportDataWindow());
+		_importButton.addActionListener(e->importForecastData(null));
 		getTableForPanel().getSelectionModel().addListSelectionListener(e->tableRowSelected(_metTable.getSelectedRow()));
 	}
 
@@ -138,19 +138,28 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 	/**
 	 * @return
 	 */
-	private void displayImportDataWindow()
+	@Override
+	protected void importForecastData(ImportForecastWindow dlg)
 	{
-		ImportMetDataWindow dlg = new ImportMetDataWindow(ActionPanelPlugin.getInstance().getActionsWindow());
-		dlg.fillForm(_fsg);
-		dlg.setVisible(true);
-		if ( dlg.isCanceled())
+		ImportMetDataWindow importMetDataWindow;
+		if(dlg == null)
+		{
+			importMetDataWindow = new ImportMetDataWindow(ActionPanelPlugin.getInstance().getActionsWindow());
+			importMetDataWindow.fillForm(_fsg);
+		}
+		else
+		{
+			importMetDataWindow = (ImportMetDataWindow) dlg;
+		}
+		importMetDataWindow.setVisible(true);
+		if ( importMetDataWindow.isCanceled())
 		{
 			return;
 		}
-		List<MeteorlogicData> metData = dlg.getMetData();
+		List<MeteorlogicData> metData = importMetDataWindow.getMetData();
 		for (int i = 0;i <metData.size(); i++ )
 		{
-			importData(_fsg, _metTable, dlg, _fsg.getMeteorlogyData(), metData.get(i));
+			importData(_fsg, _metTable, importMetDataWindow, _fsg.getMeteorlogyData(), metData.get(i));
 		}
 
 	}
@@ -315,10 +324,13 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 		List<EnsembleSet> eSetsUsingBcData = bcDataUsingMetData.stream().map(bcData -> _fsg.getEnsembleSetsUsingBcData(bcData))
 				.flatMap(List::stream)
 				.collect(Collectors.toList());
-		String initialMessage = "Do you want to delete meteorologic data " + metData.getName() + "?";
+		StringBuilder initialMessage = new StringBuilder("Do you want to delete meteorologic data " + metData.getName() + "?");
 		if(deletingDueToOverwrite)
 		{
-			initialMessage = initialMessage.replace("delete", "overwrite");
+			StringBuilder overwriteMessage = new StringBuilder(metData.getName() + " already exists");
+			overwriteMessage.append("\n");
+			overwriteMessage.append(initialMessage.toString().replace("delete", "overwrite existing"));
+			initialMessage = overwriteMessage;
 		}
 		StringBuilder confirmMessage = new StringBuilder(initialMessage);
 		if (!bcDataUsingMetData.isEmpty())
@@ -329,7 +341,7 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 			String action = "Deleting";
 			if(deletingDueToOverwrite)
 			{
-				action = "Overwriting";
+				action = metData.getName() + " already exists. Overwriting";
 			}
 			confirmMessage = new StringBuilder(action + " " + metData.getName() + " will also delete the following boundary condition sets that use it:" +
 					"\n\n" + String.join(",\n", bcDataNames));
