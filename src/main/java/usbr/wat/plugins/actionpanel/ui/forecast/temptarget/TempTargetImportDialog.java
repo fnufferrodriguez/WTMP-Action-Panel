@@ -466,18 +466,18 @@ public final class TempTargetImportDialog extends RmaJDialog
                 List<String> eSetNames = ensembleSetsUsingTTSet.stream()
                         .map(NamedType::getName)
                         .collect(Collectors.toList());
-                confirmMessage.append("Overwriting ");
-                confirmMessage.append(name);
-                confirmMessage.append(" will also delete the following ensemble sets which use those temp target sets:");
-                confirmMessage.append("\n\n");
-                confirmMessage.append(String.join(",\n", eSetNames));
-                confirmMessage.append("\n\nDo you want to continue?");
+                confirmMessage.append("Overwriting ")
+                    .append(name)
+                    .append(" will also delete the following ensemble sets which use those temp target sets:")
+                    .append("\n\n")
+                    .append(String.join(",\n", eSetNames))
+                    .append("\n\nDo you want to continue?");
             }
             else
             {
-                confirmMessage.append("\nDo you want to overwrite existing temperature target set ");
-                confirmMessage.append(name);
-                confirmMessage.append("?");
+                confirmMessage.append("\nDo you want to overwrite existing temperature target set ")
+                    .append(name)
+                    .append("?");
             }
             int opt = JOptionPane.showConfirmDialog(this, confirmMessage, "Confirm Overwrite",
                     JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);

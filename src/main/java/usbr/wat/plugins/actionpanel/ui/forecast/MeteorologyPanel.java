@@ -327,12 +327,13 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 		StringBuilder initialMessage = new StringBuilder("Do you want to delete meteorologic data " + metData.getName() + "?");
 		if(deletingDueToOverwrite)
 		{
-			StringBuilder overwriteMessage = new StringBuilder(metData.getName() + " already exists");
-			overwriteMessage.append("\n");
-			overwriteMessage.append(initialMessage.toString().replace("delete", "overwrite existing"));
-			initialMessage = overwriteMessage;
+			String initialOverwriteMessage = initialMessage.toString().replace("delete", "overwrite existing");
+			initialMessage.setLength(0);
+			initialMessage = new StringBuilder(metData.getName() + " already exists")
+					.append("\n")
+					.append(initialOverwriteMessage);
 		}
-		StringBuilder confirmMessage = new StringBuilder(initialMessage);
+		StringBuilder confirmMessage = new StringBuilder(initialMessage.toString());
 		if (!bcDataUsingMetData.isEmpty())
 		{
 			List<String> bcDataNames = bcDataUsingMetData.stream()
@@ -343,16 +344,19 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 			{
 				action = metData.getName() + " already exists. Overwriting";
 			}
-			confirmMessage = new StringBuilder(action + " " + metData.getName() + " will also delete the following boundary condition sets that use it:" +
-					"\n\n" + String.join(",\n", bcDataNames));
+			confirmMessage.setLength(0);
+			confirmMessage.append(action).append(" ").append(metData.getName())
+					.append(" will also delete the following boundary condition sets that use it:")
+					.append("\n\n")
+					.append(String.join(",\n", bcDataNames));
 			if (!eSetsUsingBcData.isEmpty())
 			{
 				List<String> eSetNames = eSetsUsingBcData.stream()
 						.map(NamedType::getName)
 						.collect(Collectors.toList());
-				confirmMessage.append("\n\nIt will also delete the following ensemble sets which use those boundary condition sets:");
-				confirmMessage.append("\n\n");
-				confirmMessage.append(String.join(",\n", eSetNames));
+				confirmMessage.append("\n\nIt will also delete the following ensemble sets which use those boundary condition sets:")
+					.append("\n\n")
+					.append(String.join(",\n", eSetNames));
 			}
 			confirmMessage.append("\n\nDo you want to continue?");
 		}

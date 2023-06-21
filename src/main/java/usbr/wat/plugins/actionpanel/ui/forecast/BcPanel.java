@@ -123,12 +123,13 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 		StringBuilder initialMessage = new StringBuilder("Do you want to delete boundary condition set " + bcData.getName() + "?");
 		if(deleteDueToOverwrite)
 		{
-			StringBuilder overwriteMessage = new StringBuilder(bcData.getName() + " already exists");
-			overwriteMessage.append("\n");
-			overwriteMessage.append(initialMessage.toString().replace("delete", "overwrite existing"));
-			initialMessage = overwriteMessage;
+			String initialOverwriteMessage = initialMessage.toString().replace("delete", "overwrite existing");
+			initialMessage.setLength(0);
+			initialMessage = new StringBuilder(bcData.getName() + " already exists")
+					.append("\n")
+					.append(initialOverwriteMessage);
 		}
-		StringBuilder confirmMessage = new StringBuilder(initialMessage);
+		StringBuilder confirmMessage = new StringBuilder(initialMessage.toString());
 		if(!eSetsUsingBcData.isEmpty())
 		{
 			List<String> eSetNames = eSetsUsingBcData.stream()
@@ -139,11 +140,14 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 			{
 				action = bcData.getName() + " already exists. Overwriting";
 			}
-			confirmMessage = new StringBuilder(action + " " + bcData.getName() + " will also delete the following ensemble sets that use it:");
-			confirmMessage.append("\n\n");
-			confirmMessage.append(String.join(",\n", eSetNames));
-			confirmMessage.append("\n\n");
-			confirmMessage.append("Do you want to continue?");
+			confirmMessage.setLength(0); //clear string builder for new message
+			confirmMessage.append(action)
+					.append(" ")
+					.append(bcData.getName())
+					.append(" will also delete the following ensemble sets that use it:")
+					.append("\n\n")
+					.append(String.join(",\n", eSetNames)).append("\n\n")
+					.append("Do you want to continue?");
 		}
 		String title = "Confirm " + (deleteDueToOverwrite ? "Overwrite" : "Delete");
 		int opt = JOptionPane.showConfirmDialog(this, confirmMessage.toString(),
