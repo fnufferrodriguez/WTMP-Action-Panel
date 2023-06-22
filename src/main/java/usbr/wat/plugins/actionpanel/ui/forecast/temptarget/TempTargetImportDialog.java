@@ -367,7 +367,7 @@ public final class TempTargetImportDialog extends RmaJDialog
             {
                 JOptionPane.showMessageDialog(this, e.getMessage(),
                         "Save Failed", JOptionPane.ERROR_MESSAGE);
-                LOGGER.log(Level.CONFIG, e, () -> "Temp Target save failed: " + e.getMessage());
+                LOGGER.log(Level.WARNING, e, () -> "Temp Target save failed: " + e.getMessage());
             }
             finally
             {
@@ -466,9 +466,9 @@ public final class TempTargetImportDialog extends RmaJDialog
                 List<String> eSetNames = ensembleSetsUsingTTSet.stream()
                         .map(NamedType::getName)
                         .collect(Collectors.toList());
-                confirmMessage.append("Overwriting ")
+                confirmMessage.append("\nOverwriting ")
                     .append(name)
-                    .append(" will also delete the following ensemble sets which use those temp target sets:")
+                    .append(" will also delete the following ensemble sets which use it:")
                     .append("\n\n")
                     .append(String.join(",\n", eSetNames))
                     .append("\n\nDo you want to continue?");

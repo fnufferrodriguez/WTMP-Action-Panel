@@ -20,8 +20,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JSeparator;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -36,6 +38,8 @@ import rma.swing.RmaInsets;
 import rma.swing.RmaJPanel;
 import rma.swing.RmaJTable;
 import rma.swing.table.RmaTableModel;
+import usbr.wat.plugins.actionpanel.model.forecast.BcData;
+import usbr.wat.plugins.actionpanel.model.forecast.EnsembleSet;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 import usbr.wat.plugins.actionpanel.ui.forecast.temptarget.TempTargetForecastTableModel;
 
@@ -433,6 +437,84 @@ public abstract class AbstractForecastPanel<T extends NamedType> extends RmaJPan
 		fsg.setModified(true);
 	}
 
+	public boolean displayDeleteMessage(String initialMessage, List<BcData> bcDataUsingData, List<EnsembleSet> eSetsUsingData, boolean deletingDueToOverwrite,
+											   T data, ForecastSimGroup fsg, ForecastTable table)
+	{
+		boolean confirmDelete = false;
+		if(deletingDueToOverwrite)
+		{
+			initialMessage = data.getName() + " already exists. " + "Do you want to overwrite it?";
+		}
+		StringBuilder confirmMessage = new StringBuilder(initialMessage);
+		if (!bcDataUsingData.isEmpty())
+		{
+			List<String> bcDataNames = bcDataUsingData.stream()
+					.map(NamedType::getName)
+					.collect(Collectors.toList());
+			String action = "Deleting";
+			if(deletingDueToOverwrite)
+			{
+				action = data.getName() + " already exists.\nOverwriting";
+			}
+			confirmMessage.setLength(0);
+			confirmMessage.append(action).append(" ").append(data.getName())
+					.append(" will also delete the following boundary condition sets that use it:")
+					.append("\n\n")
+					.append(String.join(",\n", bcDataNames));
+			appendEnsembleDeleteMessage(eSetsUsingData, confirmMessage);
+			confirmMessage.append("\n\nDo you want to continue?");
+		}
+		else
+		{
+			appendEnsembleDeleteMessage(eSetsUsingData, confirmMessage);
+		}
+		String title = "Confirm " + (deletingDueToOverwrite ? "Overwrite" : "Delete");
+		int opt = JOptionPane.showConfirmDialog(this, confirmMessage,
+				title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		if(opt == JOptionPane.YES_OPTION)
+		{
+			try
+			{
+				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+				confirmDelete = true;
+				int rowToDelete = table.getRowWithName(data.getName());
+				removeData(fsg, data);
+				fsg.saveData();
+				if (!bcDataUsingData.isEmpty())
+				{
+					getPanelForTable(_bcTable).setSimulationGroup(fsg);
+				}
+				if (!eSetsUsingData.isEmpty())
+				{
+					_forecastPanel.refreshSimulationPanel(fsg);
+				}
+				if(rowToDelete > -1)
+				{
+					table.deleteRow(rowToDelete);
+				}
+			}
+			finally
+			{
+				setCursor(Cursor.getDefaultCursor());
+			}
+		}
+		return confirmDelete;
+	}
+
+	private void appendEnsembleDeleteMessage(List<EnsembleSet> eSetsUsingData, StringBuilder confirmMessage)
+	{
+		if (!eSetsUsingData.isEmpty())
+		{
+			List<String> eSetNames = eSetsUsingData.stream()
+					.map(NamedType::getName)
+					.collect(Collectors.toList());
+			confirmMessage.append("\n\nIt will also delete the following ensemble sets which use those boundary condition sets:")
+					.append("\n\n")
+					.append(String.join(",\n", eSetNames));
+		}
+	}
+
+	protected abstract void removeData(ForecastSimGroup fsg, T data);
 
 
 	/**

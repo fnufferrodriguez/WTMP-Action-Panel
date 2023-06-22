@@ -135,6 +135,12 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 		_plotPanel.clearPanel();
 	}
 
+	@Override
+	protected void removeData(ForecastSimGroup fsg, MeteorlogicData data)
+	{
+		fsg.removeMetData(data);
+	}
+
 	/**
 	 * @return
 	 */
@@ -317,69 +323,20 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 		}
 	}
 
-	public boolean delete(MeteorlogicData metData, boolean deletingDueToOverwrite)
+	@Override
+	protected boolean delete(MeteorlogicData metData, boolean deletingDueToOverwrite)
 	{
-		boolean confirmDelete = false;
 		List<BcData> bcDataUsingMetData = _fsg.getBcDataUsingMetData(metData);
 		List<EnsembleSet> eSetsUsingBcData = bcDataUsingMetData.stream().map(bcData -> _fsg.getEnsembleSetsUsingBcData(bcData))
 				.flatMap(List::stream)
 				.collect(Collectors.toList());
-		StringBuilder initialMessage = new StringBuilder("Do you want to delete meteorologic data " + metData.getName() + "?");
+		String initialMessage = "Do you want to delete meteorologic data " + metData.getName() + "?";
 		if(deletingDueToOverwrite)
 		{
-			String initialOverwriteMessage = initialMessage.toString().replace("delete", "overwrite existing");
-			initialMessage.setLength(0);
-			initialMessage = new StringBuilder(metData.getName() + " already exists")
-					.append("\n")
-					.append(initialOverwriteMessage);
+			initialMessage = metData.getName() + " already exists." + "Do you want to overwrite it?";
 		}
-		StringBuilder confirmMessage = new StringBuilder(initialMessage.toString());
-		if (!bcDataUsingMetData.isEmpty())
-		{
-			List<String> bcDataNames = bcDataUsingMetData.stream()
-					.map(NamedType::getName)
-					.collect(Collectors.toList());
-			String action = "Deleting";
-			if(deletingDueToOverwrite)
-			{
-				action = metData.getName() + " already exists. Overwriting";
-			}
-			confirmMessage.setLength(0);
-			confirmMessage.append(action).append(" ").append(metData.getName())
-					.append(" will also delete the following boundary condition sets that use it:")
-					.append("\n\n")
-					.append(String.join(",\n", bcDataNames));
-			if (!eSetsUsingBcData.isEmpty())
-			{
-				List<String> eSetNames = eSetsUsingBcData.stream()
-						.map(NamedType::getName)
-						.collect(Collectors.toList());
-				confirmMessage.append("\n\nIt will also delete the following ensemble sets which use those boundary condition sets:")
-					.append("\n\n")
-					.append(String.join(",\n", eSetNames));
-			}
-			confirmMessage.append("\n\nDo you want to continue?");
-		}
-		String title = "Confirm " + (deletingDueToOverwrite ? "Overwrite" : "Delete");
-		int opt = JOptionPane.showConfirmDialog(this, confirmMessage,
-				title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-		if (opt == JOptionPane.YES_OPTION)
-		{
-			int rowToDelete = _metTable.getRowWithName(metData.getName());
-			confirmDelete = true;
-			_fsg.removeMetData(metData);
-			_fsg.saveData();
-			if(!bcDataUsingMetData.isEmpty())
-			{
-				getPanelForTable(_bcTable).setSimulationGroup(_fsg);
-			}
-			if(!eSetsUsingBcData.isEmpty())
-			{
-				_forecastPanel.refreshSimulationPanel();
-			}
-			_metTable.deleteRow(rowToDelete);
-		}
-		return confirmDelete;
+		return displayDeleteMessage(initialMessage, bcDataUsingMetData, eSetsUsingBcData, deletingDueToOverwrite,
+				metData, _fsg, _metTable);
 	}
 
 }

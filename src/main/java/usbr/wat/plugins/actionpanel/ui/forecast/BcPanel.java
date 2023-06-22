@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
@@ -118,62 +119,14 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 	@Override
 	protected boolean delete(BcData bcData, boolean deleteDueToOverwrite)
 	{
-		boolean confirmDelete = false;
 		List<EnsembleSet> eSetsUsingBcData = _fsg.getEnsembleSetsUsingBcData(bcData);
-		StringBuilder initialMessage = new StringBuilder("Do you want to delete boundary condition set " + bcData.getName() + "?");
+		String initialMessage = "Do you want to delete boundary condition set " + bcData.getName() + "?";
 		if(deleteDueToOverwrite)
 		{
-			String initialOverwriteMessage = initialMessage.toString().replace("delete", "overwrite existing");
-			initialMessage.setLength(0);
-			initialMessage = new StringBuilder(bcData.getName() + " already exists")
-					.append("\n")
-					.append(initialOverwriteMessage);
+			initialMessage = bcData.getName() + " already exists." + "Do you want to overwrite it?";
 		}
-		StringBuilder confirmMessage = new StringBuilder(initialMessage.toString());
-		if(!eSetsUsingBcData.isEmpty())
-		{
-			List<String> eSetNames = eSetsUsingBcData.stream()
-					.map(NamedType::getName)
-					.collect(Collectors.toList());
-			String action = "Deleting";
-			if(deleteDueToOverwrite)
-			{
-				action = bcData.getName() + " already exists. Overwriting";
-			}
-			confirmMessage.setLength(0); //clear string builder for new message
-			confirmMessage.append(action)
-					.append(" ")
-					.append(bcData.getName())
-					.append(" will also delete the following ensemble sets that use it:")
-					.append("\n\n")
-					.append(String.join(",\n", eSetNames)).append("\n\n")
-					.append("Do you want to continue?");
-		}
-		String title = "Confirm " + (deleteDueToOverwrite ? "Overwrite" : "Delete");
-		int opt = JOptionPane.showConfirmDialog(this, confirmMessage.toString(),
-				title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-		if(opt == JOptionPane.YES_OPTION)
-		{
-			try
-			{
-				setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-				int rowToDelete = _bcTable.getRowWithName(bcData.getName());
-				confirmDelete = true;
-				_fsg.removeBcData(bcData);
-				_fsg.saveData();
-				if(!eSetsUsingBcData.isEmpty())
-				{
-					_forecastPanel.refreshSimulationPanel();
-				}
-				_bcTable.deleteRow(rowToDelete);
-			}
-			finally
-			{
-				setCursor(Cursor.getDefaultCursor());
-			}
-
-		}
-		return confirmDelete;
+		return displayDeleteMessage(initialMessage, new ArrayList<>(), eSetsUsingBcData, deleteDueToOverwrite,
+				bcData, _fsg, _bcTable);
 	}
 
 	@Override
@@ -396,6 +349,12 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 	{
 		_plotPanel.clearPanel();
 		_bcInfoTable.deleteCells();
+	}
+
+	@Override
+	protected void removeData(ForecastSimGroup fsg, BcData data)
+	{
+		fsg.removeBcData(data);
 	}
 
 	@Override

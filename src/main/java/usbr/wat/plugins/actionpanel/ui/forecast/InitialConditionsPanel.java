@@ -533,6 +533,12 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		//noop
 	}
 
+	@Override
+	protected void removeData(ForecastSimGroup fsg, InitialConditions data)
+	{
+		//not currently supported
+	}
+
 	/**
 	 * @return
 	 */

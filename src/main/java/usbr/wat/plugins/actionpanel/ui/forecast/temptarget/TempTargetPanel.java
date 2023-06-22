@@ -126,7 +126,7 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 		}
 		if(!tempTargetSets.isEmpty())
 		{
-			_forecastPanel.refreshSimulationPanel();
+			_forecastPanel.refreshSimulationPanel(_fsg);
 			TemperatureTargetSet selectedSet = tempTargetSets.get(tempTargetSets.size() - 1);
 			_selectedTempTargetSet = selectedSet;
 			fillTempTargetInfoTable(selectedSet);
@@ -257,7 +257,7 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 			_fsg.saveData();
 			if(!eSetsUsingTTSet.isEmpty())
 			{
-				_forecastPanel.refreshSimulationPanel();
+				_forecastPanel.refreshSimulationPanel(_fsg);
 			}
 			_tempTargetTable.deleteRow(rowToDelete);
 		}
@@ -653,6 +653,12 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 		_ttTable.clearAll();
 		removeAllColumns();
 		_ttInfoTable.deleteCells();
+	}
+
+	@Override
+	protected void removeData(ForecastSimGroup fsg, TemperatureTargetSet data)
+	{
+		fsg.removeTemperatureTargetSet(data);
 	}
 
 }

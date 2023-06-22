@@ -223,8 +223,8 @@ public class ForecastPanel extends RmaJPanel
 		return _simulationPanel.getSelectedSimulation();
 	}
 
-	public void refreshSimulationPanel()
+	public void refreshSimulationPanel(ForecastSimGroup fsg)
 	{
-		_simulationPanel.fillSimulationTable();
+		_simulationPanel.setSimulationGroup(fsg);
 	}
 }
