@@ -384,6 +384,20 @@ public abstract class AbstractForecastPanel<T extends NamedType> extends RmaJPan
 		{
 			clearPanel();
 		}
+		if(visible)
+		{
+			for(ForecastTable table : _tables)
+			{
+				if(getTableForPanel() != table)
+				{
+					int row = table.getSelectedRow();
+					if(row >= 0)
+					{
+						table.updateSelection(row,0,false, false);
+					}
+				}
+			}
+		}
 	}
 
 	protected abstract void clearPanel();
