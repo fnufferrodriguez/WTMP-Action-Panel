@@ -160,6 +160,7 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 		_ttInfoTable.commitEdit(true);
 		_ttInfoTable.setValueAt(tempTargetSet, 0, 0);
 		_ttInfoTable.setValueAt(tempTargetSet.getDescription(), 0, 1);
+		_ttInfoTable.setValueAt(tempTargetSet.getRiverLocation(), 0, 2);
 		_ttInfoTable.setRowEnabled(false, 0);
 	}
 
@@ -181,7 +182,7 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 	@Override
 	protected void buildLowerPanel(EnabledJPanel lowerPanel)
 	{
-		String[] headers = new String[] {"Temperature Target Set", "Description"};
+		String[] headers = new String[] {"Temperature Target Set", "Description", "River Location"};
 
 		_ttInfoTable = new RmaJTable(this, headers)
 		{

@@ -19,13 +19,11 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 
 import javax.swing.JButton;
-import javax.swing.JOptionPane;
 
 import com.google.common.flogger.FluentLogger;
 import com.rma.io.FileManagerImpl;
 import com.rma.io.RmaFile;
 import com.rma.model.Project;
-import hec.lang.NamedType;
 import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJTable;

@@ -15,6 +15,7 @@ import hec.heclib.dss.DSSPathname;
 import hec.lang.NamedType;
 import rma.swing.ButtonCmdPanel;
 import rma.swing.RmaInsets;
+import rma.swing.RmaJComboBox;
 import rma.swing.RmaJDescriptionField;
 import rma.swing.RmaJDialog;
 import rma.swing.RmaJIntegerField;
@@ -24,13 +25,18 @@ import rma.swing.RmaJTable;
 import rma.swing.RmaJTextField;
 import rma.swing.table.RmaTableModel;
 import rma.util.RMAFilenameFilter;
+import usbr.wat.plugins.actionpanel.model.SharedConfigFiles;
 import usbr.wat.plugins.actionpanel.model.forecast.EnsembleSet;
 import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
+import usbr.wat.plugins.actionpanel.model.forecast.RiverLocation;
 import usbr.wat.plugins.actionpanel.model.forecast.TemperatureTargetSet;
+import usbr.wat.plugins.actionpanel.ui.forecast.CsvReader;
 
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -92,6 +98,8 @@ public final class TempTargetImportDialog extends RmaJDialog
     private JCheckBox _checkBoxEditorCheckBox;
     private RmaJDescriptionField _descriptionFieldImport;
     private RmaJIntegerField _numberTempTargetsField;
+    private RmaJComboBox<RiverLocation> _riverLocationCombo;
+    private JComboBox<RiverLocation> _riverLocationTableCombo;
 
     public TempTargetImportDialog(Window parent, List<String> existingSetNames, ForecastSimGroup fsg, TempTargetConsumer consumeTempTargetSetAction)
     {
@@ -102,6 +110,7 @@ public final class TempTargetImportDialog extends RmaJDialog
         _fsg = fsg;
         _consumeTempTargetSetAction = consumeTempTargetSetAction;
         buildControls();
+        fillRiverLocations();
         addListeners();
         pack();
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -119,7 +128,6 @@ public final class TempTargetImportDialog extends RmaJDialog
         _importFileChooserField.addFocusListener(getImportFocusListener());
         _importFileChooserField.addFileSelectedListener(f -> dssFileSelected());
         ((JButton)_importFileChooserField.getComponents()[0]).addActionListener(e -> ellipsesPressed());
-        _checkBoxEditorCheckBox.addActionListener(e -> validateOkButton());
         _importFromExistingRadioButton.addActionListener(e -> importRadioAction());
         _createNewRadioButton.addActionListener(e -> createNewRadioAction());
         _okCancelPanel.getButton(ButtonCmdPanel.CANCEL_BUTTON).addActionListener(e -> closeDialogAction());
@@ -133,6 +141,14 @@ public final class TempTargetImportDialog extends RmaJDialog
             }
         });
         _temperatureSetsTable.getModel().addTableModelListener(e -> validateOkButton());
+        _riverLocationCombo.addActionListener(e -> validateOkButton());
+        _temperatureSetsTable.addTableModelListener(e -> validateOkButton());
+        _checkBoxEditorCheckBox.addActionListener(e -> checkBoxSelected());
+    }
+
+    private void checkBoxSelected()
+    {
+        ((RmaTableModel)_temperatureSetsTable.getModel()).fireTableDataChanged();
     }
 
     private KeyListener getNumberTempTargetsKeyListener()
@@ -186,6 +202,25 @@ public final class TempTargetImportDialog extends RmaJDialog
                 }
             }
         };
+    }
+
+    private void fillRiverLocations()
+    {
+        Path riverLocationConfig = SharedConfigFiles.getRiverLocationsFile();
+        try
+        {
+            List<RiverLocation> riverLocations = CsvReader.readCsv(riverLocationConfig, RiverLocation.class);
+            riverLocations.removeIf(rl -> rl.getName().isEmpty());
+            DefaultComboBoxModel<RiverLocation> riverLocationComboModel = new DefaultComboBoxModel<>(new Vector<>(riverLocations));
+            _riverLocationCombo.setModel(riverLocationComboModel);
+            _riverLocationCombo.setSelectedIndex(-1);
+            DefaultComboBoxModel<RiverLocation> riverLocationTableComboModel = new DefaultComboBoxModel<>(new Vector<>(riverLocations));
+            _riverLocationTableCombo.setModel(riverLocationTableComboModel);
+        }
+        catch (IOException e)
+        {
+            LOGGER.log(Level.WARNING, e, () -> "Error reading river locations from " + riverLocationConfig);
+        }
     }
 
     private void dssFileSelected()
@@ -321,8 +356,10 @@ public final class TempTargetImportDialog extends RmaJDialog
     {
         JButton okButton = _okCancelPanel.getButton(ButtonCmdPanel.OK_BUTTON);
         boolean invalidCreate = _nameTextField.getText() == null || _nameTextField.getText().trim().isEmpty();
+//                || _riverLocationCombo.getSelectedIndex() < 0;
         String absPath = Project.getCurrentProject().getAbsolutePath(_importFileChooserField.getText());
         boolean invalidImport = !(Paths.get(absPath).toFile().exists()) || getNumCheckedRows() == 0;
+//                || !allCheckedRowsHaveRiverLocationAssigned();
         if(_createNewRadioButton.isSelected())
         {
             okButton.setEnabled(!invalidCreate);
@@ -332,6 +369,23 @@ public final class TempTargetImportDialog extends RmaJDialog
             okButton.setEnabled(!invalidImport);
         }
         deleteInvalidFiles(_invalidFilesToDelete);
+    }
+
+    private boolean allCheckedRowsHaveRiverLocationAssigned()
+    {
+        boolean retVal = true;
+        for(int row =0; row < _temperatureSetsTable.getRowCount(); row++)
+        {
+            Object checkVal = _temperatureSetsTable.getValueAt(row, 0);
+            Object riverLocVal = _temperatureSetsTable.getValueAt(row, 2);
+            boolean rowChecked = checkVal != null && Boolean.parseBoolean(checkVal.toString());
+            if(rowChecked && (riverLocVal == null || riverLocVal.toString().isEmpty()))
+            {
+                retVal = false;
+                break;
+            }
+        }
+        return retVal;
     }
 
     private int getNumCheckedRows()
@@ -504,7 +558,9 @@ public final class TempTargetImportDialog extends RmaJDialog
                 if(checkedVal != null && Boolean.parseBoolean(checkedVal.toString()))
                 {
                     Object name = _temperatureSetsTable.getValueAt(row, 1);
-                    if(name != null && !name.toString().trim().isEmpty() && setNamesToImport.contains(name.toString()))
+                    Object riverLocationObj = _temperatureSetsTable.getValueAt(row, 2);
+                    if(name != null && !name.toString().trim().isEmpty() && setNamesToImport.contains(name.toString())
+                        && riverLocationObj instanceof RiverLocation)
                     {
                         List<DSSPathname> pathnames = getSelectedTempTargetSetPathNames(name.toString());
                         temperatureTargetSet.setDssPathNames(pathnames);
@@ -512,6 +568,7 @@ public final class TempTargetImportDialog extends RmaJDialog
                         temperatureTargetSet.setDescription(_descriptionFieldImport.getText());
                         temperatureTargetSet.setUserDefined(false);
                         temperatureTargetSet.setDssSourcePath(Paths.get(_importFileChooserField.getText()));
+                        temperatureTargetSet.setRiverLocation((RiverLocation)riverLocationObj);
                         temperatureTargetSet.setModified(true);
                         retVal.add(temperatureTargetSet);
                     }
@@ -525,6 +582,7 @@ public final class TempTargetImportDialog extends RmaJDialog
             temperatureTargetSet.setDescription(_descriptionField.getText());
             temperatureTargetSet.setUserDefined(true);
             temperatureTargetSet.setNumberOfUserDefinedTempTargets(_numberTempTargetsField.getValue());
+            temperatureTargetSet.setRiverLocation((RiverLocation) _riverLocationCombo.getSelectedItem());
             temperatureTargetSet.setModified(true);
             retVal.add(temperatureTargetSet);
         }
@@ -604,6 +662,7 @@ public final class TempTargetImportDialog extends RmaJDialog
 
         _cardPanel = new RmaJPanel(new CardLayout());
 
+        _riverLocationCombo = new RmaJComboBox<>();
         RmaJPanel importPanel = buildImportPanel();
         RmaJPanel createPanel = buildCreatePanel();
         _cardPanel.add(importPanel, IMPORT_PANEL_ID);
@@ -683,6 +742,28 @@ public final class TempTargetImportDialog extends RmaJDialog
         gbc.fill      = GridBagConstraints.HORIZONTAL;
         gbc.insets    = RmaInsets.INSETS5505;
         nameDescPanel.add(_descriptionField, gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.gridx     = GridBagConstraints.RELATIVE;
+        gbc.gridy     = GridBagConstraints.RELATIVE;
+        gbc.gridwidth = GridBagConstraints.RELATIVE;
+        gbc.weightx   = 0.0;
+        gbc.weighty   = 0.0;
+        gbc.anchor    = GridBagConstraints.WEST;
+        gbc.fill      = GridBagConstraints.NONE;
+        gbc.insets    = RmaInsets.INSETS5505;
+        nameDescPanel.add(new JLabel("River Location:"), gbc);
+
+        gbc = new GridBagConstraints();
+        gbc.gridx     = GridBagConstraints.RELATIVE;
+        gbc.gridy     = GridBagConstraints.RELATIVE;
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.weightx   = 0.001;
+        gbc.weighty   = 0.001;
+        gbc.anchor    = GridBagConstraints.NORTHWEST;
+        gbc.fill      = GridBagConstraints.HORIZONTAL;
+        gbc.insets    = RmaInsets.INSETS5505;
+        nameDescPanel.add(_riverLocationCombo, gbc);
 
         gbc = new GridBagConstraints();
         gbc.gridx     = GridBagConstraints.RELATIVE;
@@ -774,7 +855,7 @@ public final class TempTargetImportDialog extends RmaJDialog
         gbc.insets    = RmaInsets.INSETS5505;
         importPanel.add(_descriptionFieldImport, gbc);
 
-        _temperatureSetsTable = new RmaJTable(this, new String[]{"", "Temperature Target Set"})
+        _temperatureSetsTable = new RmaJTable(this, new String[]{"", "Temperature Target Set", "River Location"})
         {
             @Override
             public Dimension getPreferredScrollableViewportSize()
@@ -783,11 +864,29 @@ public final class TempTargetImportDialog extends RmaJDialog
                 d.height = getRowHeight() * 4;
                 return d;
             }
+
+            @Override
+            public boolean isCellEditable(int row, int column)
+            {
+                boolean retVal = false;
+                if(column == 0)
+                {
+                    retVal = true;
+                }
+                else if(column == 2)
+                {
+                    Object checkVal = _temperatureSetsTable.getValueAt(row, 0);
+                    retVal = checkVal != null && Boolean.parseBoolean(checkVal.toString());
+                }
+                return retVal;
+            }
         };
         _checkBoxEditorCheckBox = _temperatureSetsTable.setCheckBoxCellEditor(0);
+        _riverLocationTableCombo = _temperatureSetsTable.setComboBoxEditor(2, new Object[]{}, true);
         _temperatureSetsTable.setColumnEnabled(false, 1);
         _temperatureSetsTable.setPopupMenuEnabled(true);
         _temperatureSetsTable.removePopupMenuRowEditingOptions();
+        _temperatureSetsTable.setRowHeight(_temperatureSetsTable.getRowHeight() + 5);
         TableColumnModel columnModel = _temperatureSetsTable.getColumnModel();
         TableColumn column = columnModel.getColumn(0);
         column.setPreferredWidth(30);

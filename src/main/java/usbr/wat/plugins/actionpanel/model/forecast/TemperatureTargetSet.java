@@ -46,12 +46,16 @@ public final class TemperatureTargetSet extends NamedType
     private static final String FILE_PATH_ELEM_NAME = "file-path";
     private static final String PATH_NAMES_ELEM_NAME = "dss-pathnames";
     private static final String PATH_NAME_ELEM_NAME = "dss-pathname";
+    private static final String RIVER_LOC_ELEM_NAME = "River-Location";
+    private static final String RIVER_LOC_NAME_ATTRIBUTE = "Name";
+    private static final String RIVER_LOC_ID_ATTRIBUTE = "Id";
     private final List<TimeSeriesContainer> _timeSeriesData = new ArrayList<>();
     private final List<DSSPathname> _dssPathNames = new ArrayList<>();
     private boolean _isUserDefined;
     private Path _dssSourcePath;
     private int _numberOfUserDefinedTempTargets;
     private Path _dssOutputPath;
+    private RiverLocation _riverLocation;
 
     public TemperatureTargetSet()
     {
@@ -75,6 +79,13 @@ public final class TemperatureTargetSet extends NamedType
             dssOutputPathElem.setText(_dssOutputPath.toString());
         }
         myElem.addContent(dssOutputPathElem);
+        Element riverLocationElement = new Element(RIVER_LOC_ELEM_NAME);
+        if(_riverLocation != null && _riverLocation.getName() != null && _riverLocation.getId() != null)
+        {
+            riverLocationElement.setAttribute(RIVER_LOC_NAME_ATTRIBUTE, _riverLocation.getName());
+            riverLocationElement.setAttribute(RIVER_LOC_ID_ATTRIBUTE, _riverLocation.getId());
+        }
+        myElem.addContent(riverLocationElement);
         Element dssPathnamesElem = new Element(PATH_NAMES_ELEM_NAME);
         for(DSSPathname pathname : _dssPathNames)
         {
@@ -105,6 +116,13 @@ public final class TemperatureTargetSet extends NamedType
             {
                 _dssOutputPath = Paths.get(filePath);
             }
+        }
+        Element riverLocationElem = myElem.getChild(RIVER_LOC_ELEM_NAME);
+        if(riverLocationElem != null)
+        {
+            String name = riverLocationElem.getAttributeValue(RIVER_LOC_NAME_ATTRIBUTE);
+            String id = riverLocationElem.getAttributeValue(RIVER_LOC_ID_ATTRIBUTE);
+            _riverLocation = new RiverLocation(name, id);
         }
         Element dssPathNamesElem = myElem.getChild(PATH_NAMES_ELEM_NAME);
         if(dssPathNamesElem != null)
@@ -530,5 +548,15 @@ public final class TemperatureTargetSet extends NamedType
     public int hashCode()
     {
         return Objects.hash(getName());
+    }
+
+    public void setRiverLocation(RiverLocation riverLocation)
+    {
+        _riverLocation = riverLocation;
+    }
+
+    public RiverLocation getRiverLocation()
+    {
+        return _riverLocation;
     }
 }
