@@ -14,7 +14,6 @@ import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -80,7 +79,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 {
 	private static final FluentLogger LOGGER = FluentLogger.forEnclosingClass();
 	private static final String CONFIG_CSV_FILE = ForecastConfigFiles.getRelativeIcReservoirsFile();
-
+	private static final SimpleDateFormat OUTPUT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 	private static final Pattern UNIT_PATTERN = Pattern.compile("\\((.*?)\\)");
 	private static final String TEMP_PLOT_MIN_PROPERTY = "WTMP.Forecast.LowerTempPlotMLimit.Celsius";
 	private static final String TEMP_PLOT_MAX_PROPERTY = "WTMP.Forecast.UpperTempPlotLimit.Celsius";
@@ -388,7 +387,8 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 				}
 				String line;
 				PairedDataContainer pdc;
-				String currDate = null, date;
+				String currDate = null;
+				String date = null;
 				String[] parts;
 				DSSPathname pathname = new DSSPathname();
 				Profile profile = null;
@@ -440,8 +440,15 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 				}
 				catch (IOException e)
 				{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					LOGGER.atWarning().withCause(e).log("Failed to read profiles file " +fileName);
+				}
+				catch (ParseException e)
+				{
+						String msg = "Failed to parse date " + date + "\nin file " + fileName;
+						JOptionPane.showMessageDialog(_plotsPanel, msg, "Failed to load initial conditions",
+								JOptionPane.ERROR_MESSAGE);
+						LOGGER.atWarning().withCause(e).log(msg);
+						break;
 				}
 				finally
 				{
@@ -618,7 +625,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 	 */
 	private void buildButtonPanel(JPanel buttonPanel)
 	{
-		_updateDataAction = new UpdateDataAction();
+		_updateDataAction = new UpdateDataAction(() -> fillPanel(_fsg));
 		GridBagConstraints gbc = new GridBagConstraints();
 		JButton button = new JButton(_updateDataAction);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
@@ -719,7 +726,6 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		if ( fsg != null )
 		{
 			_fsg = fsg;
-			fillUpperInitialConditionsTable();
 			buildPlotsPanel();
 			InitialConditions ic = fsg.getInitialConditions();
 			Set<Entry<String, ResComponents>> entrySet = _resComponents.entrySet();
@@ -735,6 +741,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 				fillTableSelections(entry.getValue().table, selectedProfiles);
 				buildTablePlot(entry.getValue().table);
 			}
+			fillUpperInitialConditionsTable();
 		}
 		setModified(false);
 	}
@@ -751,12 +758,34 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 			{
 				String profile = profiles.get(0);
 				String displayValue = reservoir + " (" + profile + ")";
-				_initialConditionsTable.appendRow(new Vector<>(Collections.singletonList(displayValue)));
+				if(tableHasProfileSelected(reservoir, profile))
+				{
+					_initialConditionsTable.appendRow(new Vector<>(Collections.singletonList(displayValue)));
+				}
 			}
-
 		}
 	}
 
+	private boolean tableHasProfileSelected(String reservoir, String profile)
+	{
+		boolean retVal = false;
+		ResComponents resComponent = _resComponents.get(reservoir);
+		if(resComponent != null)
+		{
+			for(int row=0; row< resComponent.table.getRowCount(); row++)
+			{
+				Object checked = resComponent.table.getValueAt(row, 0);
+				Object date = resComponent.table.getValueAt(row, 1);
+				if(checked != null && Boolean.parseBoolean(checked.toString())
+					&& date != null && date.toString().equalsIgnoreCase(profile))
+				{
+					retVal = true;
+					break;
+				}
+			}
+		}
+		return retVal;
+	}
 
 	/**
 	 * 
@@ -844,11 +873,10 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		/**
 		 * @param date
 		 */
-		public Profile(String date)
+		public Profile(String date) throws ParseException
 		{
-			SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd");
 			_date = parseDate(date);
-			_name = outputFormat.format(_date);
+			_name = OUTPUT_DATE_FORMAT.format(_date);
 		}
 
 		@Override
@@ -889,19 +917,9 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 			return Objects.hash(_date, _name);
 		}
 
-		private Date parseDate(String dateString)
+		private Date parseDate(String dateString) throws ParseException
 		{
-			Date retVal = new Date(Long.MIN_VALUE);
-			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-			try
-			{
-				retVal = dateFormat.parse(dateString);
-			}
-			catch (ParseException e)
-			{
-				LOGGER.atInfo().withCause(e).log("Failed to parse date " + _name);
-			}
-			return retVal;
+			return OUTPUT_DATE_FORMAT.parse(dateString);
 		}
 	}
 

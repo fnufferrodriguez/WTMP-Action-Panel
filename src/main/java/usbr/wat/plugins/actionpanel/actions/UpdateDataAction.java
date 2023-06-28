@@ -23,10 +23,18 @@ import usbr.wat.plugins.actionpanel.model.AbstractSimulationGroup;
 @SuppressWarnings("serial")
 public class UpdateDataAction extends AbstractAction
 {
+	private final Runnable _postUpdateAction;
+
 	public UpdateDataAction()
+	{
+		this(null);
+	}
+
+	public UpdateDataAction(Runnable postUpdateAction)
 	{
 		super("Get/Update Data");
 		setEnabled(false);
+		_postUpdateAction = postUpdateAction;
 	}
 	@Override
 	public void actionPerformed(ActionEvent e)
@@ -38,7 +46,7 @@ public class UpdateDataAction extends AbstractAction
 	 */
 	public void updateData(AbstractSimulationGroup simulationGroup)
 	{
-		ExtractDialog dlg = new ExtractDialog(ActionPanelPlugin.getInstance().getActionsWindow(), simulationGroup);
+		ExtractDialog dlg = new ExtractDialog(ActionPanelPlugin.getInstance().getActionsWindow(), simulationGroup, _postUpdateAction);
 		dlg.setVisible(true);
 	}
 

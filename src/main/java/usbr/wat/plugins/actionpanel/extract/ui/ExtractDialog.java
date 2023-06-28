@@ -75,8 +75,8 @@ public class ExtractDialog extends RmaJDialog
 	private static final String EXTRACT_CONFIG_DIR = "extract/config";
 	private static final String XML_EXTENSION = "xml";
 	private static final String GRAB_DATA_URL = System.getProperty("Extract.Url", "https://www.grabdata2.com");
-	
-	
+
+	private final Runnable _postUpdateAction;
 	private RmaJTextField _simGroupFld;
 	private DateTimePanel _startDateTimePanel;
 	private DateTimePanel _endDateTimePanel;
@@ -87,10 +87,12 @@ public class ExtractDialog extends RmaJDialog
 	private ButtonCmdPanel _cmdPanel;
 	private JMenuItem _viewConfigFileMenu;
 	private JMenuItem _validateConfigFileMenu;
+	private boolean _extractRan = false;
 
-	public ExtractDialog(Window parent, AbstractSimulationGroup simulationGroup)
+	public ExtractDialog(Window parent, AbstractSimulationGroup simulationGroup, Runnable postUpdateAction)
 	{
 		super(parent, true);
+		_postUpdateAction = postUpdateAction;
 		buildControls();
 		addListeners();
 		pack();
@@ -353,6 +355,10 @@ public class ExtractDialog extends RmaJDialog
 						break;
 					case ButtonCmdPanel.CLOSE_BUTTON :
 						setVisible(false);
+						if(_postUpdateAction != null && _extractRan)
+						{
+							_postUpdateAction.run();
+						}
 						break;
 				}
 			}
@@ -609,6 +615,7 @@ public class ExtractDialog extends RmaJDialog
 		RunExtractAction action = new RunExtractAction(this);
 		action.extract(this, tsParams, profileParams, selectedPaths,
 				"Enter login information for "+GRAB_DATA_URL, GRAB_DATA_URL);
+		_extractRan = true;
 		
 	}
 
