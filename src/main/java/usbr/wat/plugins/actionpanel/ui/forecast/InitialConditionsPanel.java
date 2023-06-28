@@ -144,10 +144,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		return false;
 	}
 
-	/**
-	 * @param plotsPanel
-	 */
-	private void buildPlotsPanel(EnabledJPanel plotsPanel)
+	private void buildPlotsPanel()
 	{
 		_plotsPanel.removeAll();
 		
@@ -723,7 +720,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		{
 			_fsg = fsg;
 			fillUpperInitialConditionsTable();
-			buildPlotsPanel(_plotsPanel);
+			buildPlotsPanel();
 			InitialConditions ic = fsg.getInitialConditions();
 			Set<Entry<String, ResComponents>> entrySet = _resComponents.entrySet();
 			Iterator<Entry<String, ResComponents>> iter = entrySet.iterator();
@@ -849,8 +846,9 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		 */
 		public Profile(String date)
 		{
-			_name = date;
+			SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd");
 			_date = parseDate(date);
+			_name = outputFormat.format(_date);
 		}
 
 		@Override
