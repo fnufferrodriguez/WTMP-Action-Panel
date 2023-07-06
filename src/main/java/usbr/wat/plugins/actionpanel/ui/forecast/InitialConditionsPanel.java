@@ -13,9 +13,11 @@ import java.awt.GridBagLayout;
 import java.awt.Rectangle;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -41,6 +43,7 @@ import javax.swing.event.TableModelEvent;
 import javax.swing.table.TableColumnModel;
 
 import com.google.common.flogger.FluentLogger;
+import com.rma.io.DssFileManagerImpl;
 import com.rma.io.FileManagerImpl;
 import com.rma.io.RmaFile;
 import com.rma.model.Project;
@@ -50,6 +53,7 @@ import hec.data.Parameter;
 import hec.data.Units;
 import hec.data.UnitsConversionException;
 import hec.geometry.Axis;
+import hec.gfx2d.G2dData;
 import hec.gfx2d.G2dPanel;
 import hec.gfx2d.PairedDataSet;
 import hec.gfx2d.Viewport;
@@ -83,10 +87,11 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 	private static final Pattern UNIT_PATTERN = Pattern.compile("\\((.*?)\\)");
 	private static final String TEMP_PLOT_MIN_PROPERTY = "WTMP.Forecast.LowerTempPlotMLimit.Celsius";
 	private static final String TEMP_PLOT_MAX_PROPERTY = "WTMP.Forecast.UpperTempPlotLimit.Celsius";
+	private static final Path OUTPUT_DSS_FILE_RELATIVE_PATH = Paths.get("shared");
 	private static final int DEFAULT_TEMP_PLOT_MIN_C = 0;
 	private static final int DEFAULT_TEMP_PLOT_MAX_C = 30;
-	private static final String DEFAULT_TEMP_AXIS_LABEL = "temp (C)";
-	private static final String DEFAULT_DEPTH_AXIS_LABEL = "depth (ft)";
+	private static final String DEFAULT_TEMP_UNITS = Parameter.getUnitsStringForSystem(Parameter.PARAMID_TEMP, Units.SI_ID);
+	private static final String DEFAULT_DEPTH_UNITS = Parameter.getUnitsStringForSystem(Parameter.PARAMID_ELEV, Units.ENGLISH_ID);
 	private EnabledJPanel _plotsPanel;
 	private EnabledJPanel _buttonPanel;
 	private UpdateDataAction _updateDataAction;
@@ -242,6 +247,8 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 	{
 		if ( table != null )
 		{
+			boolean useDisplayUnits = G2dData.useDisplayUnits();
+			G2dData.setUseDisplayUnits(false);
 			int rows = table.getRowCount();
 			Object obj;
 			Profile profile;
@@ -272,6 +279,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 			}
 			revalidate();
 			fixZoom(comps, pdcsToPlot);
+			G2dData.setUseDisplayUnits(useDisplayUnits);
 		}
 	}
 
@@ -332,7 +340,7 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		{
 			fileName = profileFileNames.get(i);
 			fileName = prj.getAbsolutePath(fileName);
-			Set<Profile> profiles = readProfileFile(fileName);
+			Set<Profile> profiles = readProfileFile(fileName, resInfo);
 			for (Profile profile : profiles)
 			{
 				row = new Vector();
@@ -348,9 +356,10 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 
 	/**
 	 * @param baseFileName
+	 * @param resInfo
 	 * @return
 	 */
-	private Set<Profile> readProfileFile(String baseFileName)
+	private Set<Profile> readProfileFile(String baseFileName, IcReservoirInfo resInfo)
 	{
 		Set<Profile> profiles = new TreeSet<>();
 		if(_fsg != null && _fsg.getAnalysisPeriod() != null)
@@ -406,20 +415,20 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 							continue;
 						}
 						date = parts[0];
-						if (currDate == null || !date.equals(currDate))
+						if (!date.equals(currDate))
 						{
 							if (profile != null)
 							{
 								fillInProfilePdc(profile, temps, depths);
+								writeProfileToDss(profile);
 							}
 							currDate = date;
 							temps.clear();
 							depths.clear();
 							pdc = new PairedDataContainer();
-							pathname.setCPart("TEMP-ELEV");
-							pathname.setFPart(date);
-							pdc.fullName = pathname.getPathname();
-							pdc.fileName = fileName;
+							String pdcFileNameWithExtension = Paths.get(fileName).getFileName().toString();
+							String pdcFileName = pdcFileNameWithExtension.substring(0, pdcFileNameWithExtension.lastIndexOf("."));
+							pdc.fileName = Project.getCurrentProject().getAbsolutePath(OUTPUT_DSS_FILE_RELATIVE_PATH.resolve(pdcFileName + ".dss").toString());
 							int idx = date.indexOf(' ');
 							if (idx > -1)
 							{
@@ -427,6 +436,12 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 							}
 							profile = new Profile(date);
 							profiles.add(profile);
+							pathname.setBPart(resInfo.getReservoirName());
+							String depthParam = Parameter.getParameter(Parameter.PARAMID_DEPTH).getParameter();
+							String tempParam = Parameter.getParameter(Parameter.PARAMID_TEMP).getParameter();
+							pathname.setCPart(depthParam.toUpperCase() + "-" + tempParam.toUpperCase());
+							pathname.setEPart(date);
+							pdc.fullName = pathname.getPathname();
 							profile._pdc = pdc;
 						}
 						temps.add(parts[1]);
@@ -436,9 +451,10 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 					if (profile != null)
 					{
 						fillInProfilePdc(profile, temps, depths);
+						writeProfileToDss(profile);
 					}
 				}
-				catch (IOException e)
+				catch (IOException | DataSetIllegalArgumentException e)
 				{
 					LOGGER.atWarning().withCause(e).log("Failed to read profiles file " +fileName);
 				}
@@ -465,6 +481,15 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		return profiles;
 	}
 
+	private void writeProfileToDss(Profile profile)
+	{
+		PairedDataContainer pdc = profile._pdc;
+		int success = DssFileManagerImpl.getDssFileManager().write(pdc);
+		if(success != 0)
+		{
+			LOGGER.atWarning().log("Failed to write " + pdc.fullName + " to " + pdc.fileName + ".  Error code: " + success);
+		}
+	}
 
 
 	/**
@@ -475,16 +500,27 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 	private void fillInProfilePdc(Profile profile, List<String> tempsList,
 			List<String> depthsList)
 	{
-		profile._pdc.setNumberCurves(1);
-		profile._pdc.setNumberOrdinates(tempsList.size());
-		//these are always C and ft. In future csv file should provide units.
-		profile._pdc.xunits = DEFAULT_TEMP_AXIS_LABEL;
-		profile._pdc.yunits = DEFAULT_DEPTH_AXIS_LABEL;
-		double[]temps = toDoubleArray(tempsList);
-		double[]depths = toDoubleArray(depthsList);
-		double[][] depths2 = new double[1][0];
-		depths2[0] = depths;
-		profile._pdc.setValues(temps, depths2);
+		try
+		{
+			profile._pdc.setNumberCurves(1);
+			profile._pdc.setNumberOrdinates(depthsList.size());
+			//these are always C and ft. In future csv file should provide units.
+			profile._pdc.xunits = DEFAULT_DEPTH_UNITS;
+			profile._pdc.xparameter = Parameter.getParameter(Parameter.PARAMID_DEPTH).getParameter();
+			profile._pdc.yparameter = Parameter.getParameter(Parameter.PARAMID_TEMP).getParameter();
+			profile._pdc.yunits = DEFAULT_TEMP_UNITS;
+			double[] temps = toDoubleArray(tempsList);
+			double[] depths = toDoubleArray(depthsList);
+			double[][] temps2 = new double[1][0];
+			temps2[0] = temps;
+			profile._pdc.setValues(depths, temps2);
+			profile._pdc.switchXyAxis = true;
+		}
+		catch (DataSetIllegalArgumentException e)
+		{
+			LOGGER.atWarning().withCause(e).log("Failed to get Parameter");
+		}
+
 	}
 
 
