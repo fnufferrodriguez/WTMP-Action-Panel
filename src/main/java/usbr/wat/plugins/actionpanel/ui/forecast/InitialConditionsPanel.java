@@ -426,7 +426,8 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 							temps.clear();
 							depths.clear();
 							pdc = new PairedDataContainer();
-							String pdcFileName = fileName.substring(fileName.lastIndexOf("/") + 1, fileName.lastIndexOf("."));
+							String pdcFileNameWithExtension = Paths.get(fileName).getFileName().toString();
+							String pdcFileName = pdcFileNameWithExtension.substring(0, pdcFileNameWithExtension.lastIndexOf("."));
 							pdc.fileName = Project.getCurrentProject().getAbsolutePath(OUTPUT_DSS_FILE_RELATIVE_PATH.resolve(pdcFileName + ".dss").toString());
 							int idx = date.indexOf(' ');
 							if (idx > -1)
@@ -435,14 +436,13 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 							}
 							profile = new Profile(date);
 							profiles.add(profile);
-							profile._pdc = pdc;
 							pathname.setBPart(resInfo.getReservoirName());
 							String depthParam = Parameter.getParameter(Parameter.PARAMID_DEPTH).getParameter();
 							String tempParam = Parameter.getParameter(Parameter.PARAMID_TEMP).getParameter();
 							pathname.setCPart(depthParam.toUpperCase() + "-" + tempParam.toUpperCase());
 							pathname.setEPart(date);
 							pdc.fullName = pathname.getPathname();
-							writeProfileToDss(profile);
+							profile._pdc = pdc;
 						}
 						temps.add(parts[1]);
 						depths.add(parts[2]);
@@ -481,10 +481,14 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 		return profiles;
 	}
 
-	private void writeProfileToDss(Profile profile) throws DataSetIllegalArgumentException
+	private void writeProfileToDss(Profile profile)
 	{
 		PairedDataContainer pdc = profile._pdc;
-		DssFileManagerImpl.getDssFileManager().write(pdc);
+		int success = DssFileManagerImpl.getDssFileManager().write(pdc);
+		if(success != 0)
+		{
+			LOGGER.atWarning().log("Failed to write " + pdc.fullName + " to " + pdc.fileName + ".  Error code: " + success);
+		}
 	}
 
 
