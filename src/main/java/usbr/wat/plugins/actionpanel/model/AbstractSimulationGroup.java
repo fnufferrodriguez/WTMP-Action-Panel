@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.jdom.Document;
 import org.jdom.Element;
@@ -273,12 +272,6 @@ public abstract class AbstractSimulationGroup extends AbstractXMLManager
 	
 	}
 
-	public List<String> getSimulationNames()
-	{
-		return _simulationInfo.stream()
-				.map(info -> info.simName)
-				.collect(Collectors.toList());
-	}
 	/**
 	 * @param doc
 	 */

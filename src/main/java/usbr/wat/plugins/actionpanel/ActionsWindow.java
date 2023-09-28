@@ -441,33 +441,22 @@ public class ActionsWindow extends RmaJDialog
 			if ( simGroup != null )
 			{
 				boolean deleted = false;
-				boolean isSimGroup = false;
 				List<WatSimulation> sims = simGroup.getSimulations();
 				for (int i = 0;i < sims.size(); i++ )
 				{
 					sim = sims.get(i);
 					if ( name.equals(sim.getName()))
 					{
-						String[] fPartSplit = sim.getFPart().split(":");
-						if(fPartSplit.length > 0)
-						{
-							String originalSimName = fPartSplit[0];
-							String[] nameSplit = name.split(originalSimName + "-");
-							if(nameSplit.length > 1 && nameSplit[1].equalsIgnoreCase(simGroup.getName()))
-							{
-								isSimGroup = true;
-							}
-						}
 						simGroup.removeSimulation(sim);
 						simGroup.setModified(true);
 						deleted = true;
 						break;
 					}
 				}
-				if ( deleted && !isSimGroup)
+				if ( deleted )
 				{
 					_calibrationPanel.setSimulationTable(simGroup);
-					if ( simGroup.getSimulations().isEmpty() )
+					if ( Project.getCurrentProject().getManagerProxy(simGroup) != null && simGroup.getSimulations().isEmpty() )
 					{
 						String msg = "There are no more simulations in the Simulation Group.  Would you like to delete the Simulation Group?";
 						String title = "Delete Simulation Group?";

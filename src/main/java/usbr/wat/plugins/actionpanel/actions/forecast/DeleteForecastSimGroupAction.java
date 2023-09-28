@@ -7,16 +7,16 @@
  */
 package usbr.wat.plugins.actionpanel.actions.forecast;
 
-import java.awt.Dialog;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.util.List;
 
 import javax.swing.AbstractAction;
 import com.rma.client.ObjectChooser;
+import com.rma.factories.DeleteManagerFactory;
 import com.rma.model.Manager;
 import com.rma.model.ManagerProxy;
 import com.rma.model.Project;
+import hec2.wat.model.WatSimulation;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.model.AbstractSimulationGroup;
@@ -60,15 +60,12 @@ public class DeleteForecastSimGroupAction extends AbstractAction
 			manager = proxy.loadManager();
 			if ( manager instanceof AbstractSimulationGroup)
 			{
-				List<String> simNames = ((AbstractSimulationGroup) manager).getSimulationNames();
-				for(String simName : simNames)
+				List<WatSimulation> sims = ((AbstractSimulationGroup) manager).getSimulations();
+				DeleteManagerFactory.deleteManager(manager);
+				for(int n = sims.size()-1; n >= 0; n--)
 				{
-					prj.getManagerProxyList().stream()
-							.filter(p -> p.getName().equalsIgnoreCase(simName))
-							.findFirst()
-							.ifPresent(p -> prj.removeManager(p.loadManager()));
+					DeleteManagerFactory.deleteManager(sims.get(n));
 				}
-				 prj.removeManager(manager);
 			}
 		}
 		ActionPanelPlugin.getInstance().getActionsWindow().getForecastPanel().loadSimulationGroupCombo();
