@@ -271,6 +271,7 @@ public abstract class AbstractSimulationGroup extends AbstractXMLManager
 		return true;
 	
 	}
+
 	/**
 	 * @param doc
 	 */

@@ -456,7 +456,7 @@ public class ActionsWindow extends RmaJDialog
 				if ( deleted )
 				{
 					_calibrationPanel.setSimulationTable(simGroup);
-					if ( simGroup.getSimulations().isEmpty() )
+					if ( Project.getCurrentProject().getManagerProxy(simGroup) != null && simGroup.getSimulations().isEmpty() )
 					{
 						String msg = "There are no more simulations in the Simulation Group.  Would you like to delete the Simulation Group?";
 						String title = "Delete Simulation Group?";
