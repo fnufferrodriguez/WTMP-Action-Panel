@@ -68,7 +68,7 @@ public class CalibrationSimulationGroupPanel extends BaseSimulationGroupPanel
 	@Override
 	protected void simGroupSelected(ItemEvent e)
 	{
-		if ( ItemEvent.DESELECTED == e.getStateChange())
+		if ( e != null && ItemEvent.DESELECTED == e.getStateChange())
 		{
 			return;
 		}
