@@ -31,7 +31,6 @@ import com.rma.editors.ComputeProgressDialog;
 import com.rma.io.DssFileManagerImpl;
 import com.rma.io.FileManagerImpl;
 import com.rma.io.RmaFile;
-import com.rma.model.Computable;
 import com.rma.model.ComputeProgressListener;
 import com.rma.model.ComputeProgressListener2;
 import com.rma.model.Project;
@@ -45,13 +44,13 @@ import hec.heclib.util.HecTime;
 import hec.hecmath.HecMathException;
 import hec.hecmath.TimeSeriesMath;
 import hec.io.DSSIdentifier;
+import hec.io.PairedDataContainer;
 import hec.io.TimeSeriesContainer;
 import hec.model.RunTimeWindow;
 import hec2.model.DataLocation;
 import hec2.model.DssDataLocation;
 import hec2.plugin.model.ComputeOptions;
 import hec2.plugin.model.ModelAlternative;
-import hec2.wat.editors.WatComputeProgressDialog;
 import hec2.wat.model.WatSimulation;
 import hec2.wat.plugin.SimpleWatPlugin;
 import hec2.wat.plugin.WatPlugin;
@@ -67,10 +66,10 @@ import org.python.util.PythonInterpreter;
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.actions.forecast.RunForecastSimulationAction;
-import usbr.wat.plugins.actionpanel.editors.iterationCompute.UsgsComputeSelectorDialog;
 import usbr.wat.plugins.actionpanel.model.BaseComputeSettings;
 import usbr.wat.plugins.actionpanel.model.ComputeSettings;
 import usbr.wat.plugins.actionpanel.model.ComputeType;
+import usbr.wat.plugins.actionpanel.model.IcPathMap;
 import usbr.wat.plugins.actionpanel.model.ModelAltIterationSettings;
 import usbr.wat.plugins.actionpanel.model.UsbrComputable;
 
@@ -82,7 +81,10 @@ public class ForecastActionComputable
 		implements UsbrComputable, RealizationComputable
 {
 	private static final FluentLogger LOGGER = FluentLogger.forEnclosingClass();
+
+	private static final String SAVE_DSS_RECORDS_PROP = "ForecastCompute.SaveDssRecords";
 	private static final String BC_CONFIG_FILE = ForecastConfigFiles.getRelativeBCConfigFile();
+	private static final String IC_CONFIG_FILE = ForecastConfigFiles.getRelativeICConfigFile();
 	private static final String TEMP_TARGET_CONFIG_FILE = ForecastConfigFiles.getRelativeTempTargetConfigFile();
 	private static final String SAVE_SUFFEX = "-save";
 	public static final String ITERATION_DSS_FILE = "iterationResults.dss";
@@ -106,6 +108,7 @@ public class ForecastActionComputable
 	private ComputeType _computeType;
 
 	private DssPathMap _bcDssPathMap;
+	private IcPathMap _icDssPathMap;
 	private TempTargetDssPathMap _tempTargetDssPathMap;
 	private ComputeProgressPanel _computeProgressPanel;
 	private int _memberCnt;
@@ -299,6 +302,10 @@ public class ForecastActionComputable
 			{
 				return false;
 			}
+			if ( !copyICDssData())
+			{
+				return false;
+			}
 			int currentMember;
 			for(int m = 0; m < _members.length;m ++ )
 			{
@@ -414,7 +421,10 @@ public class ForecastActionComputable
 			{
 				JOptionPane.showMessageDialog(Browser.getBrowserFrame(), "Restoring original DSS data");
 			}
-			restoreDssPaths(savedDssPaths);
+			if ( Boolean.getBoolean(SAVE_DSS_RECORDS_PROP))
+			{
+				restoreDssPaths(savedDssPaths);
+			}
 			_preCodeMap.clear();
 			_postCodeMap.clear();
 			for (int l = 0; l < listeners.size(); l++ )
@@ -436,10 +446,10 @@ public class ForecastActionComputable
 			JOptionPane.showMessageDialog(Browser.getBrowserFrame(), "Saving Original Data ");
 		}
 		String prjDir = Project.getCurrentProject().getProjectDirectory();
-		String configPath = RMAIO.concatPath(prjDir, BC_CONFIG_FILE);
+		String bcConfigPath = RMAIO.concatPath(prjDir, BC_CONFIG_FILE);
 
 		_computeProgressPanel.setStatusMessage("Reading Boundary Condition Data..");
-		_bcDssPathMap = new DssPathMap(_sim, configPath);
+		_bcDssPathMap = new DssPathMap(_sim, bcConfigPath);
 		BcData bcData = eset.getBcData();
 		_bcDssPathMap.setSourceFPart(bcData.getFPart());
 		_bcDssPathMap.setSourceDssFile(Project.getCurrentProject().getAbsolutePath(bcData.getOutputDssFile().toString()));
@@ -448,9 +458,22 @@ public class ForecastActionComputable
 			return false;
 		}
 
-		configPath = RMAIO.concatPath(prjDir, TEMP_TARGET_CONFIG_FILE);
+		String icConfigPath = RMAIO.concatPath(prjDir, IC_CONFIG_FILE);
+		_computeProgressPanel.setStatusMessage("Reading Initial Condition Data..");
+		_icDssPathMap = new IcPathMap(_sim, icConfigPath, _simGroup.getInitialConditions());
+		InitialConditions icData = _simGroup.getInitialConditions();
+//_icDssPathMap.setSourceFPart(bcData.getFPart());
+
+		if ( !_icDssPathMap.readDssPathsFile())
+		{
+			return false;
+		}
+
+
+
+		String ttConfigPath = RMAIO.concatPath(prjDir, TEMP_TARGET_CONFIG_FILE);
 		_computeProgressPanel.setStatusMessage("Reading Temperature Target Data..");
-		_tempTargetDssPathMap = new TempTargetDssPathMap(_sim, configPath);
+		_tempTargetDssPathMap = new TempTargetDssPathMap(_sim, ttConfigPath);
 		_tempTargetDssPathMap.setSourceDssFile(eset.getTemperatureTargetSet().getDssOutputPath().toString());
 		_tempTargetDssPathMap.setSourceFPart(eset.getTemperatureTargetSet().getFPartWithoutCollection());
 
@@ -458,13 +481,15 @@ public class ForecastActionComputable
 		{
 			return false;
 		}
-
-		List<DSSIdentifier>savedDssPaths = saveDssPaths(_bcDssPathMap, _tempTargetDssPathMap);
-		if ( savedDssPaths == null )
+		if ( Boolean.getBoolean((SAVE_DSS_RECORDS_PROP))) //)))
 		{
-			return false;
+			List<DSSIdentifier> savedDssPaths = saveDssPaths(_bcDssPathMap, _tempTargetDssPathMap);
+			if (savedDssPaths == null)
+			{
+				return false;
+			}
+			savedPaths.addAll(savedDssPaths);
 		}
-		savedPaths.addAll(savedDssPaths);
 		_preCodeMap.clear();
 		_postCodeMap.clear();
 
@@ -1198,6 +1223,51 @@ public class ForecastActionComputable
 		TimeSeriesContainer shiftedTsc = tsm.getContainer();
 		return shiftedTsc;
 	}
+	private boolean copyICDssData()
+	{
+		_computeProgressPanel.setStatusMessage("Copying Initial Condition Data ...");
+
+		boolean copySuccessful = true;
+
+
+		_sim.addComputeMessage("Copying over Initial Condition records...");
+
+
+		//copy the boundary condition data
+		// dest to source map
+		InitialConditions icData = _simGroup.getInitialConditions();
+		List<String> reservoirs = icData.getReservoirs();
+		String reservoir, dssFile;
+		DSSPathname dssPath;
+		Profile profile;
+		List<DSSIdentifier> destDssIds;
+		DSSIdentifier destDssId;
+		for(int r = 0;r < reservoirs.size(); r++ )
+		{
+			reservoir = reservoirs.get(r);
+			DSSIdentifier  srcDssId = _icDssPathMap.getSourceDSSIdentifierFor(reservoir);
+			if ( srcDssId == null )
+			{
+				_sim.addWarningMessage("No Source DSS File/path found for Initial Conditions for Reservoir "+reservoir);
+				continue;
+			}
+			if ( !RMAIO.isFullPath(srcDssId.getFileName()))
+			{
+				srcDssId.setFileName(Project.getCurrentProject().getAbsolutePath(srcDssId.getFileName() ));
+			}
+			destDssIds = _icDssPathMap.getDestDssIdentifiersFor(reservoir);
+			for (int d = 0;d < destDssIds.size(); d++ )
+			{
+				destDssId = destDssIds.get(d);
+				if ( !RMAIO.isFullPath(destDssId.getFileName()))
+				{
+					destDssId.setFileName(Project.getCurrentProject().getAbsolutePath(destDssId.getFileName() ));
+				}
+				copySuccessful |= copyPdDssRecord(srcDssId, destDssId);
+			}
+		}
+		return copySuccessful;
+	}
 
 	/**
 	 * copy in the bc data
@@ -1233,13 +1303,61 @@ public class ForecastActionComputable
 			DSSIdentifier destDssId = copyMapElement.getKey();
 			fullPath = Project.getCurrentProject().getAbsolutePath(destDssId.getFileName());
 			destDssId.setFileName(fullPath);
-			copySuccessful |= copyDssRecord(srcDssId, destDssId);
+			copySuccessful |= copyTsDssRecord(srcDssId, destDssId);
 
 		}
 		return copySuccessful;
 	}
 
-	private boolean copyDssRecord(DSSIdentifier srcDssId, DSSIdentifier destDssId)
+	/**
+	 *  copy the paired data records from the source DSS file to the dest DSS file
+	 * @param srcDssId
+	 * @param destDssId
+	 * @return
+	 */
+	private boolean copyPdDssRecord(DSSIdentifier srcDssId, DSSIdentifier destDssId)
+	{
+		boolean copySuccessful = true;
+		PairedDataContainer srcPdc = DssFileManagerImpl.getDssFileManager().readPairedDataContainer(srcDssId);
+		if ( srcPdc != null && srcPdc.numberOrdinates > 0 )
+		{
+			_sim.addMessage("Copying "+srcDssId+" to "+destDssId);
+			srcPdc.fileName = destDssId.getFileName();
+			srcPdc.fullName = destDssId.getDSSPath();
+			int rv = DssFileManagerImpl.getDssFileManager().write(srcPdc);
+			if ( rv != 0 )
+			{
+				copySuccessful= false;
+				LOGGER.atWarning().log("Failed to write PDC DSS record for "+destDssId+" to "+srcPdc.fileName+" : "+srcPdc.fullName+" rv="+rv);
+				_sim.addErrorMessage("Failed to write PDC DSS record for "+destDssId+" to "+srcPdc.fileName+" : "+srcPdc.fullName+" rv="+rv);
+			}
+			else
+			{
+				DSSPathname pathname = new DSSPathname();
+				/// save off the source DSS data into the collection dss file with the F part appended with -Forecast
+				srcPdc.fileName = getCollectionsOutputDssFile("forecastResults.dss");
+				pathname.setPathname(srcPdc.fullName);
+				//pathname.setCollectionSequence(member);
+				pathname.setFPart(pathname.getFPart()+"-FORECAST");
+				srcPdc.fullName = pathname.getPathname();
+				rv = DssFileManagerImpl.getDssFileManager().write(srcPdc);
+				_sim.addComputeMessage("   Copied " + srcDssId+ " to "+destDssId);
+			}
+		}
+		else
+		{
+			LOGGER.atWarning().log("Copying PDC Record, No data found to copy for "+srcDssId);
+			_sim.addErrorMessage("Copying PDC Record, No Data Found for " + srcDssId );
+		}
+		return copySuccessful;
+	}
+	/**
+	 *  copy the time series records from the source DSS file to the dest DSS file
+	 * @param srcDssId
+	 * @param destDssId
+	 * @return
+	 */
+	private boolean copyTsDssRecord(DSSIdentifier srcDssId, DSSIdentifier destDssId)
 	{
 		boolean copySuccessful = true;
 		TimeSeriesContainer srcTsc = DssFileManagerImpl.getDssFileManager().readTS(srcDssId, true);
@@ -1252,8 +1370,8 @@ public class ForecastActionComputable
 			if ( rv != 0 )
 			{
 				copySuccessful= false;
-				LOGGER.atWarning().log("Failed to write DSS record for "+destDssId+" to "+srcTsc.fileName+" : "+srcTsc.fullName+" rv="+rv);
-				_sim.addErrorMessage("Failed to write DSS record for "+destDssId+" to "+srcTsc.fileName+" : "+srcTsc.fullName+" rv="+rv);
+				LOGGER.atWarning().log("Failed to write TS DSS record for "+destDssId+" to "+srcTsc.fileName+" : "+srcTsc.fullName+" rv="+rv);
+				_sim.addErrorMessage("Failed to write TS DSS record for "+destDssId+" to "+srcTsc.fileName+" : "+srcTsc.fullName+" rv="+rv);
 			}
 			else
 			{
@@ -1344,7 +1462,7 @@ public class ForecastActionComputable
 			destDssId = destDssIdentifiers.get(i);
 			destDssId.setFileName(Project.getCurrentProject().getAbsolutePath(destDssId.getFileName()));
 			_sim.addComputeMessage("Copying Temperature Target pathname from "+srcDssId+" to " + destDssId);
-			copySuccessful |= copyDssRecord(srcDssId, destDssId);
+			copySuccessful |= copyTsDssRecord(srcDssId, destDssId);
 		}
 
 		return copySuccessful;

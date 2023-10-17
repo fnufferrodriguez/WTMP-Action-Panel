@@ -20,6 +20,7 @@ public class ForecastConfigFiles
 	public static final String BASE_FOLDER = "forecast/config";
 
 	public static final String BC_PATHS_MAP_FILENAME = "bcPathsMap.config";
+	public static final String IC_PATHS_MAP_FILENAME = "icPathsMap.config";
 	public static final String TEMP_TARGETS_FILENAME = "target_temp.config";
 
 	public static final String HISTORICAL_MET_FILENAME = "historical_met.config";
@@ -42,7 +43,15 @@ public class ForecastConfigFiles
 		String file = System.getProperty("WTMP.bcPathsMapFile", BASE_FOLDER+"/"+BC_PATHS_MAP_FILENAME);
 		return file;
 	}
-
+	/**
+	 *
+	 * @return the full relative path to the IC .config file
+	 */
+	public static String getRelativeICConfigFile()
+	{
+		String file = System.getProperty("WTMP.icPathsMapFile", BASE_FOLDER+"/"+IC_PATHS_MAP_FILENAME);
+		return file;
+	}
 	/**
 	 *
 	 * @return the relative path to the temp targets .config file
@@ -62,7 +71,15 @@ public class ForecastConfigFiles
 		String file = getRelativeBCConfigFile();
 		return makeAbsolute(file);
 	}
-
+	/**
+	 *
+	 * @return the full path to the forecast IC .config file
+	 */
+	public static String getICConfigFile()
+	{
+		String file = getRelativeICConfigFile();
+		return makeAbsolute(file);
+	}
 	/**
 	 *
 	 * @return the full path to the temp targets .config file
