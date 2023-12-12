@@ -453,40 +453,35 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 				hourlyTsc.startHecTime = hourlyTsc.getHecTime(0);
 				hourlyTsc.endTime = hourlyTsc.times[hourlyTsc.times.length - 1];
 				hourlyTsc.endHecTime = hourlyTsc.getHecTime(hourlyTsc.numberValues-1);
-			}
-			else
-			{
-				hourlyTsc = new TimeSeriesContainer();
-			}
-			hourlyTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
-			DSSPathname pathname = new DSSPathname(weeklyTsc.fullName);
-			pathname.setDPart("");
-			pathname.setEPart(TemperatureTargetTimeStep.REGULAR_HOURLY.toString());
-			hourlyTsc.fullName = pathname.getPathname();
-			int hourlyStatus = DssFileManagerImpl.getDssFileManager().write(hourlyTsc);
-			int weeklyStatus = DssFileManagerImpl.getDssFileManager().writeTS(weeklyTsc, new StoreOptionImpl());
-			String errorSpecified = "";
-			String statusCode = "";
-			if(hourlyStatus != 0 && !hourlyTsc.allMissing())
-			{
-				errorSpecified += hourlyTsc.fullName;
-				statusCode = String.valueOf(hourlyStatus);
-				if(weeklyStatus != 0)
+				hourlyTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
+				DSSPathname pathname = new DSSPathname(weeklyTsc.fullName);
+				pathname.setDPart("");
+				pathname.setEPart(TemperatureTargetTimeStep.REGULAR_HOURLY.toString());
+				hourlyTsc.fullName = pathname.getPathname();
+				int hourlyStatus = DssFileManagerImpl.getDssFileManager().write(hourlyTsc);
+				int weeklyStatus = DssFileManagerImpl.getDssFileManager().writeTS(weeklyTsc, new StoreOptionImpl());
+				String errorSpecified = "";
+				String statusCode = "";
+				if(hourlyStatus != 0 && !hourlyTsc.allMissing())
 				{
-					errorSpecified += " and " + weeklyTsc.fullName;
+					errorSpecified += hourlyTsc.fullName;
+					statusCode = String.valueOf(hourlyStatus);
+					if(weeklyStatus != 0)
+					{
+						errorSpecified += " and " + weeklyTsc.fullName;
+						statusCode = String.valueOf(weeklyStatus);
+					}
+				}
+				else if (weeklyStatus != 0 && !weeklyTsc.allMissing())
+				{
+					errorSpecified = weeklyTsc.fullName;
 					statusCode = String.valueOf(weeklyStatus);
 				}
+				if(!errorSpecified.isEmpty())
+				{
+					throw new TempTargetSaveFailedException(errorSpecified, weeklyTsc.fileName, statusCode);
+				}
 			}
-			else if (weeklyStatus != 0 && !weeklyTsc.allMissing())
-			{
-				errorSpecified = weeklyTsc.fullName;
-				statusCode = String.valueOf(weeklyStatus);
-			}
-			if(!errorSpecified.isEmpty())
-			{
-				throw new TempTargetSaveFailedException(errorSpecified, weeklyTsc.fileName, statusCode);
-			}
-
 		}
 		catch (HecMathException e)
 		{
@@ -494,7 +489,10 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 		}
 		finally
 		{
-			DssFileManagerImpl.getDssFileManager().close(weeklyTsc.fileName);
+			if(!weeklyTsc.allMissing())
+			{
+				DssFileManagerImpl.getDssFileManager().close(weeklyTsc.fileName);
+			}
 			if(hourlyTsc != null)
 			{
 				DssFileManagerImpl.getDssFileManager().close(hourlyTsc.fileName);
