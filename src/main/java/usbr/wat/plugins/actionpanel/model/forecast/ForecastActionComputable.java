@@ -887,21 +887,26 @@ public class ForecastActionComputable
 		{
 			_sim.addComputeMessage("Renaming "+srcDssId+" for time window "+timeWindow[0] +" to "+timeWindow[1]);
 		}
-
-LOGGER.atInfo().log("Found "+srcList+" records for "+dssPath+" in "+dssFileAbs+" copying to "+destList);
-		_sim.addComputeMessage("Found "+srcList+" records for "+dssPath+" in "+dssFileAbs);
-
-		int rv = DssFileManagerImpl.getDssFileManager().renameRecords(dssFileAbs, srcList, destList);
-
-		if  (rv == srcList.size())  // renamed all the records
+		if ( srcList.size() > 0 )
 		{
-			DSSIdentifier dssId = new DSSIdentifier(dssFileAbs, dssPath);
-			return dssId;
+			LOGGER.atInfo().log("Found " + srcList + " records for " + dssPath + " in " + dssFileAbs + " copying to " + destList);
+			_sim.addComputeMessage("Found " + srcList + " records for " + dssPath + " in " + dssFileAbs);
+
+			int rv = DssFileManagerImpl.getDssFileManager().renameRecords(dssFileAbs, srcList, destList);
+
+			if (rv == srcList.size())  // renamed all the records
+			{
+				DSSIdentifier dssId = new DSSIdentifier(dssFileAbs, dssPath);
+				return dssId;
+			} else
+			{
+				LOGGER.atWarning().log("Failed to save off all DSS records for " + dssPath + ".  Expected to save " + srcList.size() + " saved " + rv);
+				_sim.addWarningMessage("Failed to save off all DSS records for " + dssPath + ".  Expected to save " + srcList.size() + " saved " + rv);
+			}
 		}
 		else
 		{
-			LOGGER.atWarning().log("Failed to save off all DSS records for "+dssPath+".  Expected to save " + srcList.size()+" saved "+rv);
-			_sim.addWarningMessage("Failed to save off all DSS records for "+dssPath+".  Expected to save " + srcList.size()+" saved "+rv);
+			LOGGER.atInfo().log("Found no records for " + dssPath + " in " + dssFileAbs +" to save off");
 		}
 		return null;
 	}
@@ -1330,7 +1335,8 @@ LOGGER.atInfo().log("Found "+srcList+" records for "+dssPath+" in "+dssFileAbs+"
 		DSSIdentifier destDssId;
 		if ( destDssIdentifiers.size() == 0 )
 		{
-			_sim.addWarningMessage("No Temperature Targets were found to copy");
+			_sim.addWarningMessage("No Temperature Targets were found to copy for temp target path "+pathname);
+			_sim.addWarningMessage("The temp Target Config file "+TEMP_TARGET_CONFIG_FILE+" source pathnames have to match "+pathname);
 			return true;
 		}
 		for (int i = 0;i < destDssIdentifiers.size(); i ++ )
