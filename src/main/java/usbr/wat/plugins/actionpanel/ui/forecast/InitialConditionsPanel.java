@@ -363,14 +363,23 @@ public class InitialConditionsPanel extends AbstractForecastPanel<InitialConditi
 			List<String> fileNames = new ArrayList<>();
 			int dotIndex = baseFileName.lastIndexOf(".");
 			String baseFileNameNoExtension = baseFileName.substring(0, dotIndex);
-			int year = _fsg.getAnalysisPeriod().getRunTimeWindow().getStartTime().getLocalDateTime().getYear();
-			if (Paths.get(baseFileNameNoExtension + "-" + year + ".csv").toFile().exists())
+			int yearStart = _fsg.getAnalysisPeriod().getRunTimeWindow().getStartTime().getLocalDateTime().getYear();
+			for(int year = yearStart; year >= yearStart - 100; year--)
 			{
-				fileNames.add(baseFileNameNoExtension + "-" + year + ".csv");
-			}
-			if (Paths.get(baseFileNameNoExtension + "-" + (year - 1) + ".csv").toFile().exists())
-			{
-				fileNames.add(baseFileNameNoExtension + "-" + (year - 1) + ".csv");
+				boolean foundData = false;
+				if (Paths.get(baseFileNameNoExtension + "-" + year + ".csv").toFile().exists())
+				{
+					fileNames.add(baseFileNameNoExtension + "-" + year + ".csv");
+					foundData = true;
+				}
+				if (Paths.get(baseFileNameNoExtension + "-" + (year - 1) + ".csv").toFile().exists())
+				{
+					fileNames.add(baseFileNameNoExtension + "-" + (year - 1) + ".csv");
+				}
+				if(foundData)
+				{
+					break;
+				}
 			}
 			if (fileNames.isEmpty())
 			{
