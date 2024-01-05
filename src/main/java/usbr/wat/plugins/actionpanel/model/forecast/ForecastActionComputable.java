@@ -1237,25 +1237,32 @@ public class ForecastActionComputable
 		// dest to source map
 		InitialConditions icData = _simGroup.getInitialConditions();
 		List<String> reservoirs = icData.getReservoirs();
-		String reservoir, dssFile;
-		DSSPathname dssPath;
-		Profile profile;
+		String reservoir;
 		List<DSSIdentifier> destDssIds;
 		DSSIdentifier destDssId;
+
 		for(int r = 0;r < reservoirs.size(); r++ )
 		{
 			reservoir = reservoirs.get(r);
-			DSSIdentifier  srcDssId = _icDssPathMap.getSourceDSSIdentifierFor(reservoir);
+			DSSIdentifier srcDssId = _icDssPathMap.getSourceDSSIdentifierFor(reservoir);
 			if ( srcDssId == null )
 			{
-				_sim.addWarningMessage("No Source DSS File/path found for Initial Conditions for Reservoir "+reservoir);
+				_sim.addWarningMessage("No source DSS record found for "+reservoir+"'s Initial Conditions");
 				continue;
 			}
-			if ( !RMAIO.isFullPath(srcDssId.getFileName()))
+			if (!RMAIO.isFullPath(srcDssId.getFileName()))
 			{
-				srcDssId.setFileName(Project.getCurrentProject().getAbsolutePath(srcDssId.getFileName() ));
+				srcDssId.setFileName(Project.getCurrentProject().getAbsolutePath(srcDssId.getFileName()));
 			}
+
+
 			destDssIds = _icDssPathMap.getDestDssIdentifiersFor(reservoir);
+			if ( destDssIds.isEmpty() )
+			{
+				_sim.addWarningMessage("No DSS Destination defined for "+reservoir+"'s Initial Conditions");
+				continue;
+			}
+			_sim.addComputeMessage("Copying over Initial Condition record for " + reservoir);
 			for (int d = 0;d < destDssIds.size(); d++ )
 			{
 				destDssId = destDssIds.get(d);
@@ -1267,6 +1274,22 @@ public class ForecastActionComputable
 			}
 		}
 		return copySuccessful;
+	}
+
+	/**
+	 * do we have a DSSIdentifier that's null or missing its file or path
+	 * @param srcDssId
+	 * @return true if its missing information
+	 */
+	private boolean missingDssIdentifier(DSSIdentifier srcDssId)
+	{
+		if ( srcDssId == null
+			|| srcDssId.getFileName() == null || srcDssId.getFileName().trim().isEmpty()
+			|| srcDssId.getDSSPath() == null || srcDssId.getDSSPath().trim().isEmpty() || "///////".equals(srcDssId.getDSSPath()))
+		{
+			return true;
+		}
+		return false;
 	}
 
 	/**
