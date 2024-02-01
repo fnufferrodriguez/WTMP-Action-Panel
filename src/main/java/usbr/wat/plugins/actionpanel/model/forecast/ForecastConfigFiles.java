@@ -22,6 +22,7 @@ public class ForecastConfigFiles
 	public static final String BC_PATHS_MAP_FILENAME = "bcPathsMap.config";
 	public static final String IC_PATHS_MAP_FILENAME = "icPathsMap.config";
 	public static final String TEMP_TARGETS_FILENAME = "target_temp.config";
+	public static final String TEMP_TARGETS_CONTROL_LOCS_FILENAME = "temp_target_control_locs.config";
 
 	public static final String HISTORICAL_MET_FILENAME = "historical_met.config";
 	public static final String FLOW_PATTERN_FILENAME = "flow_pattern.config";
@@ -59,6 +60,12 @@ public class ForecastConfigFiles
 	public static String getRelativeTempTargetConfigFile()
 	{
 		String file = System.getProperty("WTMP.tempTargetPathsMapFile", BASE_FOLDER+"/"+TEMP_TARGETS_FILENAME);
+		return file;
+	}
+
+	public static String getRelativeTempTargetControlLocsFile()
+	{
+		String file = System.getProperty("WTMP.tempTargetControlLocsPathsMapFile", BASE_FOLDER+"/"+TEMP_TARGETS_CONTROL_LOCS_FILENAME);
 		return file;
 	}
 
