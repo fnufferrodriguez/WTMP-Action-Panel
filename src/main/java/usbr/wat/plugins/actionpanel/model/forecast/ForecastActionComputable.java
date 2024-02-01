@@ -13,6 +13,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import javax.swing.JProgressBar;
 import com.google.common.flogger.FluentLogger;
 import com.rma.client.Browser;
 import com.rma.editors.ComputeProgressDialog;
+import com.rma.io.DssFileManager;
 import com.rma.io.DssFileManagerImpl;
 import com.rma.io.FileManagerImpl;
 import com.rma.io.RmaFile;
@@ -45,6 +47,7 @@ import hec.hecmath.HecMathException;
 import hec.hecmath.TimeSeriesMath;
 import hec.io.DSSIdentifier;
 import hec.io.PairedDataContainer;
+import hec.io.TextContainer;
 import hec.io.TimeSeriesContainer;
 import hec.model.RunTimeWindow;
 import hec2.model.DataLocation;
@@ -72,6 +75,7 @@ import usbr.wat.plugins.actionpanel.model.ComputeType;
 import usbr.wat.plugins.actionpanel.model.IcPathMap;
 import usbr.wat.plugins.actionpanel.model.ModelAltIterationSettings;
 import usbr.wat.plugins.actionpanel.model.UsbrComputable;
+import usbr.wat.plugins.actionpanel.ui.forecast.CsvReader;
 
 /**
  * @author Mark Ackerman
@@ -86,10 +90,12 @@ public class ForecastActionComputable
 	private static final String BC_CONFIG_FILE = ForecastConfigFiles.getRelativeBCConfigFile();
 	private static final String IC_CONFIG_FILE = ForecastConfigFiles.getRelativeICConfigFile();
 	private static final String TEMP_TARGET_CONFIG_FILE = ForecastConfigFiles.getRelativeTempTargetConfigFile();
+	private static final String TEMP_TARGET_CONTROL_LOCS_FILE = ForecastConfigFiles.getRelativeTempTargetControlLocsFile();
 	private static final String SAVE_SUFFEX = "-save";
 	public static final String ITERATION_DSS_FILE = "iterationResults.dss";
 	private static final String DSSFILE = "DSS File";
 	public static final String METHOD_SIGNATURE = "runIteration(modelAlternative, currentIteration, maxIteration)";
+	public static final String TEMP_TARGET_CONTROL_LOC_REPLACE = "%location%";
 	private final boolean _recomputeAll;
 	private int[] _members;
 	/** the starting collection number to copy the data to the collections output file */
@@ -110,6 +116,7 @@ public class ForecastActionComputable
 	private DssPathMap _bcDssPathMap;
 	private IcPathMap _icDssPathMap;
 	private TempTargetDssPathMap _tempTargetDssPathMap;
+	private List<TempTargetControlLocsMapping> _tempTargetControlLocsDssPathMap;
 	private ComputeProgressPanel _computeProgressPanel;
 	private int _memberCnt;
 	private int _memberIdx;
@@ -340,6 +347,10 @@ public class ForecastActionComputable
 				{
 					return false;
 				}
+				if ( !copyTempTargetControlLocs())
+				{
+					return false;
+				}
 
 				if ( _canceled )
 				{
@@ -438,6 +449,44 @@ public class ForecastActionComputable
 		return true;
 	}
 
+	private boolean copyTempTargetControlLocs()
+	{
+		_computeProgressPanel.setStatusMessage("Copying Temperature Targets Control Location Data...");
+		boolean copySuccessful = true;
+		for(TempTargetControlLocsMapping _mapping : _tempTargetControlLocsDssPathMap)
+		{
+			String srcDssFile = _mapping.getSourceDssFile();
+			String srcDssPath = _mapping.getSourceDssRecord();
+			String destDssFile = _mapping.getDestinationDssFile();
+			String destDssPath = _mapping.getDestinationDssRecord();
+			DSSIdentifier srcDssId = new DSSIdentifier(Project.getCurrentProject().getAbsolutePath(srcDssFile),srcDssPath);
+			DSSIdentifier destDssId = new DSSIdentifier(Project.getCurrentProject().getAbsolutePath(destDssFile),destDssPath);
+			_sim.addComputeMessage("Copying Temperature Target Control Location pathname from "+srcDssId+" to " + destDssId);
+			copySuccessful = copyTextDssRecord(srcDssId, destDssId);
+		}
+		return copySuccessful;
+	}
+
+	private boolean copyTextDssRecord(DSSIdentifier srcDssId, DSSIdentifier destDssId)
+	{
+		DssFileManager fileManager = DssFileManagerImpl.getDssFileManager();
+		TextContainer copyFromData = fileManager.readTextData(srcDssId);
+		int success = -1;
+		if(copyFromData != null && !copyFromData.getText().isEmpty())
+		{
+			success = fileManager.writeTextData(destDssId, copyFromData.getText());
+			if(success < 0)
+			{
+				_sim.addWarningMessage("Failed to copy Text DSS Record from "+srcDssId+" to "+destDssId);
+			}
+		}
+		else
+		{
+			_sim.addWarningMessage("No data found in DSS Text Record: "+srcDssId);
+		}
+		return success == 0;
+	}
+
 	private boolean preCompute(EnsembleSet eset, int[] members, List<DSSIdentifier>savedPaths)
 	{
 		// save off the original DSS data
@@ -481,6 +530,18 @@ public class ForecastActionComputable
 		{
 			return false;
 		}
+		String ttControlLocConfigPath = RMAIO.concatPath(prjDir, TEMP_TARGET_CONTROL_LOCS_FILE);
+		_computeProgressPanel.setStatusMessage("Reading Temperature Target Control Location Data..");
+		try
+		{
+			_tempTargetControlLocsDssPathMap = readTempTargetControlLocsFile(ttControlLocConfigPath, eset.getTemperatureTargetSet());
+		}
+		catch (IOException e)
+		{
+			_sim.addWarningMessage("Failed to read Temperature Target Control Location file " + ttControlLocConfigPath);
+			LOGGER.atWarning().withCause(e).log("Failed to read Temperature Target Control Location file " + ttControlLocConfigPath);
+			return false;
+		}
 		if ( Boolean.getBoolean((SAVE_DSS_RECORDS_PROP))) //)))
 		{
 			List<DSSIdentifier> savedDssPaths = saveDssPaths(_bcDssPathMap, _tempTargetDssPathMap);
@@ -494,6 +555,23 @@ public class ForecastActionComputable
 		_postCodeMap.clear();
 
 		return true;
+	}
+
+	private List<TempTargetControlLocsMapping> readTempTargetControlLocsFile(String ttControlLocConfigPath, TemperatureTargetSet ttSet) throws IOException
+	{
+		List<TempTargetControlLocsMapping> retVal = CsvReader.readCsv(Paths.get(ttControlLocConfigPath), TempTargetControlLocsMapping.class);
+		for(TempTargetControlLocsMapping mapping : retVal)
+		{
+			String srcRecord = mapping.getSourceDssRecord();
+			if(srcRecord == null)
+			{
+				_sim.addWarningMessage("Read Failed. No Source DSS Record specified in config " + ttControlLocConfigPath);
+				return new ArrayList<>();
+			}
+			String realizedSrcRecord = srcRecord.replace(TEMP_TARGET_CONTROL_LOC_REPLACE, ttSet.getRiverLocation().getName());
+			mapping.setSourceDssRecord(realizedSrcRecord);
+		}
+		return retVal;
 	}
 
 

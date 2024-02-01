@@ -8,6 +8,7 @@
 package usbr.wat.plugins.actionpanel.ui.forecast;
 
 import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
@@ -28,6 +29,10 @@ public final class CsvReader
     {
         CsvMapper csvMapper = new CsvMapper();
         CsvSchema csvSchema = csvMapper.schema().withHeader();
+
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(String.class, new TrimDeserializer());
+        csvMapper.registerModule(module);
 
         List<T> retVal = new ArrayList<>();
 
