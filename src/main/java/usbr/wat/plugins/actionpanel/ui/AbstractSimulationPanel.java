@@ -36,6 +36,7 @@ import rma.swing.EnabledJPanel;
 import rma.swing.RmaInsets;
 import rma.util.RMAFilenameFilter;
 import rma.util.RMAIO;
+import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.SimulationActionsPanel;
 import usbr.wat.plugins.actionpanel.actions.DisplayReportAction;
@@ -369,6 +370,7 @@ public abstract class AbstractSimulationPanel extends EnabledJPanel
 			simInfo.setDescription(sim.getDescription());
 			simInfo.setLastComputedDate(new Date(sim.getLastComputedDate()).toString());
 			simInfo.setIsSimulation(true);
+			simInfo.setSimulationGroup(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup());
 
 			simInfos.add(simInfo);
 		}
@@ -385,6 +387,7 @@ public abstract class AbstractSimulationPanel extends EnabledJPanel
 			simInfo.setDescription(results.getDescription());
 			simInfo.setLastComputedDate(new Date(results.getLastComputedTime()).toString());
 			simInfo.setIsSimulation(false);
+			simInfo.setSimulationGroup(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup());
 
 			simInfos.add(simInfo);
 		}

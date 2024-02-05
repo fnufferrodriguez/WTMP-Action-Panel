@@ -30,6 +30,7 @@ import hec2.wat.model.WatSimulation;
 import rma.swing.RmaInsets;
 import rma.swing.RmaJList;
 import rma.swing.list.RmaListModel;
+import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
 import usbr.wat.plugins.actionpanel.ActionsPanel;
 import usbr.wat.plugins.actionpanel.ActionsWindow;
 import usbr.wat.plugins.actionpanel.SimulationActionsPanel;
@@ -429,7 +430,8 @@ public class CalibrationPanel extends AbstractSimulationPanel
 			simInfo.setDescription(sim.getDescription());
 			simInfo.setLastComputedDate(new Date(sim.getLastComputedDate()).toString());
 			simInfo.setIsSimulation(true);
-			
+			simInfo.setSimulationGroup(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup());
+
 			simInfos.add(simInfo);
 		}
 		for (int i = 0;i < selectedResults.size(); i++ )
@@ -445,7 +447,8 @@ public class CalibrationPanel extends AbstractSimulationPanel
 			simInfo.setDescription(results.getDescription());
 			simInfo.setLastComputedDate(new Date(results.getLastComputedTime()).toString());
 			simInfo.setIsSimulation(false);
-			
+			simInfo.setSimulationGroup(ActionPanelPlugin.getInstance().getActionsWindow().getSimulationGroup());
+
 			simInfos.add(simInfo);	
 		}
 		

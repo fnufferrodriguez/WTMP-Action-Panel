@@ -25,6 +25,7 @@ public class SimulationReportInfo
 	private String _lastComputedDate;
 	private boolean _isSimulation;
 	private String _reportCsvFile;
+	private AbstractSimulationGroup _simulationGroup;
 
 	public SimulationReportInfo()
 	{
@@ -173,4 +174,15 @@ public class SimulationReportInfo
 	{
 		return _reportCsvFile;
 	}
+
+	public AbstractSimulationGroup getSimulationGroup()
+	{
+		return _simulationGroup;
+	}
+
+	public void setSimulationGroup(AbstractSimulationGroup simGroup)
+	{
+		_simulationGroup = simGroup;
+	}
+
 }
