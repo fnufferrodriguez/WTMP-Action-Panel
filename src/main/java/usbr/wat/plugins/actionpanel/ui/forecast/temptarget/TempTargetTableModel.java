@@ -43,7 +43,7 @@ final class TempTargetTableModel extends RmaTableModel
     public Object getValueAt(int row, int col)
     {
         Object retVal;
-        if(row < 0 || col < 0)
+        if(row < 0 || col < 0 || row >= _rowDataList.size() || col >= getColumnCount())
         {
             return null;
         }

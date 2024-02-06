@@ -458,6 +458,7 @@ public class ForecastActionComputable
 
 	private boolean writeCurrentMember(int currentMember)
 	{
+		_computeProgressPanel.setStatusMessage("Writing current ensemble member...");
 		boolean success = true;
 		String runDir = Project.getCurrentProject().getAbsolutePath(_sim.getRunDirectory());
 		Path currentEnsembleFile = Paths.get(runDir).resolve(CURRENT_ENSEMBLE_FILE_NAME);
@@ -465,6 +466,7 @@ public class ForecastActionComputable
 		{
 			// Create the file if it doesn't exist, truncate it if it does
 			Files.write(currentEnsembleFile, String.valueOf(currentMember).getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+			_computeProgressPanel.setStatusMessage("Wrote current ensemble member " + currentMember + " to " + currentEnsembleFile);
 		}
 		catch (IOException e)
 		{
@@ -548,7 +550,7 @@ public class ForecastActionComputable
 
 		String ttConfigPath = RMAIO.concatPath(prjDir, TEMP_TARGET_CONFIG_FILE);
 		_computeProgressPanel.setStatusMessage("Reading Temperature Target Data..");
-		_tempTargetDssPathMap = new TempTargetDssPathMap(_sim, ttConfigPath);
+		_tempTargetDssPathMap = new TempTargetDssPathMap(_sim, ttConfigPath, eset.getTemperatureTargetSet());
 		_tempTargetDssPathMap.setSourceDssFile(eset.getTemperatureTargetSet().getDssOutputPath().toString());
 		_tempTargetDssPathMap.setSourceFPart(eset.getTemperatureTargetSet().getFPartWithoutCollection());
 
