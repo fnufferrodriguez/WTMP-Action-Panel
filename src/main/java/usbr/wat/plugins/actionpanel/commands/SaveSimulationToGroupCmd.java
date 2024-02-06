@@ -7,13 +7,22 @@
  */
 package usbr.wat.plugins.actionpanel.commands;
 
+import java.awt.Color;
+import java.util.List;
+import com.google.common.flogger.FluentLogger;
 import com.rma.commands.AbstractNewManagerCommand;
 import com.rma.io.FileManagerImpl;
+import com.rma.message.Message;
 import com.rma.model.Project;
 
+import hec2.model.DataLocation;
+import hec2.plugin.model.ModelAlternative;
+import hec2.wat.WAT;
 import hec2.wat.model.WatAnalysisPeriod;
+import hec2.wat.model.WatProject;
 import hec2.wat.model.WatSimulation;
 import hec2.wat.model.WatSimulationContainer;
+import hec2.wat.model.WatModelLinkingManager;
 
 import rma.util.RMAIO;
 import usbr.wat.plugins.actionpanel.ActionPanelPlugin;
@@ -26,6 +35,7 @@ import usbr.wat.plugins.actionpanel.model.AbstractSimulationGroup;
  */
 public class SaveSimulationToGroupCmd extends AbstractNewManagerCommand
 {
+	private static final FluentLogger LOGGER = FluentLogger.forEnclosingClass();
 
 	private final boolean _runExtract;
 	private WatSimulation _srcSim;
@@ -97,6 +107,11 @@ public class SaveSimulationToGroupCmd extends AbstractNewManagerCommand
 		_newSim.setSimulationContainer(container);
 		container.addSimulation(_newSim);
 		_project.addManager(_newSim);
+		if ( !copyModelLinking(_srcSim, _newSim))
+		{
+			Message msg = new Message("Failed to copy Model Linking for simulation "+_newSim.getName()+". Check log file for details", Color.RED);
+			WAT.getWatFrame().addMessage(msg);
+		}
 		if ( _runExtract)
 		{
 			new UpdateDataAction().updateData(_simGroup);
@@ -105,7 +120,40 @@ public class SaveSimulationToGroupCmd extends AbstractNewManagerCommand
 		return false;
 		
 	}
-	
+
+	private boolean copyModelLinking(WatSimulation srcSim, WatSimulation newSim)
+	{
+		WatModelLinkingManager mlm = getModelLinkingManager();
+		List<ModelAlternative> modelAlts = srcSim.getAllModelAlternativeList();
+		String srcSimName = srcSim.getName();
+		String newSimName = newSim.getName();
+		ModelAlternative modelAlt;
+		List<DataLocation>dataLocs;
+		boolean rv = true;
+		for (int i = 0;i <modelAlts.size(); i++  )
+		{
+			modelAlt = modelAlts.get(i);
+			if ( modelAlt == null )
+			{
+				continue;
+			}
+			dataLocs = mlm.getDataLocationsFor(srcSimName, modelAlt);
+			if (dataLocs != null )
+			{
+				if ( !mlm.setDataLocationsFor(newSimName, modelAlt, dataLocs))
+				{
+					LOGGER.atWarning().log("Failed to copy DataLocations for Simulation:"+newSimName+" ModelAlternative:"+modelAlt);
+					rv = false;
+				}
+			}
+		}
+		return rv;
+	}
+	private WatModelLinkingManager getModelLinkingManager()
+	{
+		WatProject prj = (WatProject) Project.getCurrentProject();
+		return prj.getModelLinkingManager();
+	}
 	public static String getGroupSimName(String simName, String simGroupName)
 	{
 		return simName+"-"+simGroupName;
