@@ -301,7 +301,7 @@ public class ReposEditor extends RmaJDialog
 		
 		
 		
-		_deleteRepoButton = new JButton(RmaImage.getImageIcon("Images/trashCan.gif"));
+		_deleteRepoButton = new JButton(RmaImage.getImageIcon("Images/delete.gif"));
 		_deleteRepoButton.setToolTipText("Delete the current repository");
 		_deleteRepoButton.setEnabled(false);
 		gbc.gridx     = GridBagConstraints.RELATIVE;
