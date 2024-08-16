@@ -221,6 +221,10 @@ public class OperationsPanel extends AbstractForecastPanel<OperationsData>
 		_lowerPanel.remove(_excelTable.getScrollPane());
 		_excelTable = new RmaJTable(this, new String[]{""});
 		_excelTable.deleteCells();
+		if ( _fsg == null )
+		{
+			setEnabled(false);
+		}
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx     = GridBagConstraints.RELATIVE;
 		gbc.gridy     = GridBagConstraints.RELATIVE;

@@ -188,6 +188,12 @@ public class ForecastPanel extends RmaJPanel
 		}
 		else
 		{
+			_simulationPanel.setSimulationGroup(null, false);
+			_initialConditionsPanel.setSimulationGroup(null);
+			_operationsPanel.setSimulationGroup(null);
+			_metPanel.setSimulationGroup(null);
+			_tempTargetsPanel.setSimulationGroup(null);
+			_bcPanel.setSimulationGroup(null);
 			clearPanel();
 		}
 	}

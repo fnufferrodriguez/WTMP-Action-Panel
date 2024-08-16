@@ -367,6 +367,10 @@ public class BcPanel extends AbstractForecastPanel<BcData>
 	{
 		_plotPanel.clearPanel();
 		_bcInfoTable.deleteCells();
+		if ( _fsg == null )
+		{
+			setEnabled(false);
+		}
 	}
 
 	@Override
