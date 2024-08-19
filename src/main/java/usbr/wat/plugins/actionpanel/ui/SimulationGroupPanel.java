@@ -87,6 +87,7 @@ public class SimulationGroupPanel extends BaseSimulationGroupPanel
 		ManagerProxy proxy = (ManagerProxy) _simulationGroupCombo.getSelectedItem();
 		if ( e != null && ItemEvent.DESELECTED == e.getStateChange() && proxy != null)
 		{
+			fillForm(null);
 			return;
 		}
 		ForecastSimGroup simGroup = null;

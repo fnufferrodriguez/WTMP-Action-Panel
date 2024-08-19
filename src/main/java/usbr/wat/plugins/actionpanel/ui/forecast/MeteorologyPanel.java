@@ -131,6 +131,10 @@ public class MeteorologyPanel extends AbstractForecastPanel<MeteorlogicData>
 	protected void clearPanel()
 	{
 		_plotPanel.clearPanel();
+		if ( _fsg == null )
+		{
+			setEnabled(false);
+		}
 	}
 
 	@Override
