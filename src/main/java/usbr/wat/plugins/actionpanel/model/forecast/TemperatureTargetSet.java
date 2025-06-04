@@ -86,7 +86,15 @@ public final class TemperatureTargetSet extends NamedType
         }
         myElem.addContent(riverLocationElement);
         Element dssPathnamesElem = new Element(PATH_NAMES_ELEM_NAME);
-        List<DSSPathname> pathnames = getDssPathNames(TemperatureTargetTimeStep.REGULAR_WEEKLY);
+        List<DSSPathname> pathnames;
+        if(isUserDefined())
+        {
+            pathnames = getDssPathNames(TemperatureTargetTimeStep.REGULAR_WEEKLY);
+        }
+        else
+        {
+            pathnames = getDssPathNames();
+        }
         for(DSSPathname pathname : pathnames)
         {
             Element dssPathnameElem = new Element(PATH_NAME_ELEM_NAME);
@@ -339,7 +347,13 @@ public final class TemperatureTargetSet extends NamedType
                 {
                     if(tsc.allMissing())
                     {
-                        tsc = buildFixedDataForUserDefined(i, timeWindow);
+                        //previously everything was saved as weekly, causing no data to load if daily data was saved
+                        //save code has been fixed, but adding this code as a means to attempt to find and load that data so user doesn't have to re-load and re-save data
+                        tsc = backwardsCompatLoadData(i, pathname, timeWindow);
+                        if(tsc == null)
+                        {
+                            tsc = buildFixedDataForUserDefined(i, timeWindow);
+                        }
                     }
                     _timeSeriesData.add(tsc);
                 }
@@ -354,6 +368,26 @@ public final class TemperatureTargetSet extends NamedType
         {
             trimStartDate(timeWindow);
         }
+    }
+
+    private TimeSeriesContainer backwardsCompatLoadData(int i, DSSPathname pathname, RunTimeWindow timeWindow)
+    {
+        TimeSeriesContainer retVal = null;
+        List<TemperatureTargetTimeStep> timestepsToSearch = new ArrayList<>();
+        timestepsToSearch.add(TemperatureTargetTimeStep.REGULAR_DAILY);
+        timestepsToSearch.add(TemperatureTargetTimeStep.REGULAR_MONTHLY);
+        timestepsToSearch.add(TemperatureTargetTimeStep.REGULAR_HOURLY);
+        for(TemperatureTargetTimeStep step : timestepsToSearch)
+        {
+            DSSPathname daily = new DSSPathname(pathname.getPathname().replace(TemperatureTargetTimeStep.REGULAR_WEEKLY.toString(), step.toString()));
+            TimeSeriesContainer tsc = buildTsFromPathname(i, daily, timeWindow);
+            if(!tsc.allMissing())
+            {
+                retVal = tsc;
+                break;
+            }
+        }
+        return retVal;
     }
 
     private TimeSeriesContainer buildTsFromPathname(int index, DSSPathname pathname, RunTimeWindow timeWindow)
@@ -577,4 +611,5 @@ public final class TemperatureTargetSet extends NamedType
     {
         return _units;
     }
+
 }

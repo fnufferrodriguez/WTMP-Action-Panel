@@ -447,15 +447,15 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 		return retVal;
 	}
 
-	private void saveTimeSeries(TimeSeriesContainer weeklyTsc, String fileName) throws TempTargetSaveFailedException
+	private void saveTimeSeries(TimeSeriesContainer nativeTsc, String fileName) throws TempTargetSaveFailedException
 	{
 		TimeSeriesContainer hourlyTsc = null;
-		weeklyTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
+		nativeTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
 		try
 		{
-			if(!weeklyTsc.allMissing())
+			if(!nativeTsc.allMissing())
 			{
-				TimeSeriesMath timeSeriesMath = new TimeSeriesMath(weeklyTsc);
+				TimeSeriesMath timeSeriesMath = new TimeSeriesMath(nativeTsc);
 				HecMath hecMath = timeSeriesMath.interpolateDataAtRegularInterval(TemperatureTargetTimeStep.REGULAR_HOURLY.toString(), "0M");
 				hourlyTsc = (TimeSeriesContainer) hecMath.getData();
 				hourlyTsc.startTime = hourlyTsc.times[0];
@@ -463,47 +463,47 @@ public class TempTargetPanel extends AbstractForecastPanel<TemperatureTargetSet>
 				hourlyTsc.endTime = hourlyTsc.times[hourlyTsc.times.length - 1];
 				hourlyTsc.endHecTime = hourlyTsc.getHecTime(hourlyTsc.numberValues-1);
 				hourlyTsc.fileName = Project.getCurrentProject().getAbsolutePath(fileName);
-				hourlyTsc.units = weeklyTsc.units;
+				hourlyTsc.units = nativeTsc.units;
 				hourlyTsc.storedAsdoubles = true;
-				weeklyTsc.storedAsdoubles = true;
-				DSSPathname pathname = new DSSPathname(weeklyTsc.fullName);
+				nativeTsc.storedAsdoubles = true;
+				DSSPathname pathname = new DSSPathname(nativeTsc.fullName);
 				pathname.setDPart("");
 				pathname.setEPart(TemperatureTargetTimeStep.REGULAR_HOURLY.toString());
 				hourlyTsc.fullName = pathname.getPathname();
 				int hourlyStatus = DssFileManagerImpl.getDssFileManager().write(hourlyTsc);
-				int weeklyStatus = DssFileManagerImpl.getDssFileManager().writeTS(weeklyTsc, new StoreOptionImpl());
+				int nativeTimeStepStatus = DssFileManagerImpl.getDssFileManager().writeTS(nativeTsc, new StoreOptionImpl());
 				String errorSpecified = "";
 				String statusCode = "";
 				if(hourlyStatus != 0 && !hourlyTsc.allMissing())
 				{
 					errorSpecified += hourlyTsc.fullName;
 					statusCode = String.valueOf(hourlyStatus);
-					if(weeklyStatus != 0)
+					if(nativeTimeStepStatus != 0)
 					{
-						errorSpecified += " and " + weeklyTsc.fullName;
-						statusCode = String.valueOf(weeklyStatus);
+						errorSpecified += " and " + nativeTsc.fullName;
+						statusCode = String.valueOf(nativeTimeStepStatus);
 					}
 				}
-				else if (weeklyStatus != 0 && !weeklyTsc.allMissing())
+				else if (nativeTimeStepStatus != 0 && !nativeTsc.allMissing())
 				{
-					errorSpecified = weeklyTsc.fullName;
-					statusCode = String.valueOf(weeklyStatus);
+					errorSpecified = nativeTsc.fullName;
+					statusCode = String.valueOf(nativeTimeStepStatus);
 				}
 				if(!errorSpecified.isEmpty())
 				{
-					throw new TempTargetSaveFailedException(errorSpecified, weeklyTsc.fileName, statusCode);
+					throw new TempTargetSaveFailedException(errorSpecified, nativeTsc.fileName, statusCode);
 				}
 			}
 		}
 		catch (HecMathException e)
 		{
-			LOGGER.log(Level.SEVERE, e, () -> "Failed to convert timeseries: " + weeklyTsc.fullName + " to hourly");
+			LOGGER.log(Level.SEVERE, e, () -> "Failed to convert timeseries: " + nativeTsc.fullName + " to hourly");
 		}
 		finally
 		{
-			if(!weeklyTsc.allMissing())
+			if(!nativeTsc.allMissing())
 			{
-				DssFileManagerImpl.getDssFileManager().close(weeklyTsc.fileName);
+				DssFileManagerImpl.getDssFileManager().close(nativeTsc.fileName);
 			}
 			if(hourlyTsc != null)
 			{

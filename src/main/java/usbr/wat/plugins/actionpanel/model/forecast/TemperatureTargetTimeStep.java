@@ -10,8 +10,9 @@ package usbr.wat.plugins.actionpanel.model.forecast;
 public enum TemperatureTargetTimeStep
 {
     REGULAR_HOURLY("1Hour"),
-    REGULAR_WEEKLY("1Week");
-
+    REGULAR_WEEKLY("1Week"),
+    REGULAR_MONTHLY("1Month"),
+    REGULAR_DAILY("1Day");
     private final String _displayName;
 
     TemperatureTargetTimeStep(String displayName)
