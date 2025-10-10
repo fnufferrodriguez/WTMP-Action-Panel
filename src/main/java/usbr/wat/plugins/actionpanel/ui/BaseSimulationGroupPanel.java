@@ -39,7 +39,7 @@ import usbr.wat.plugins.actionpanel.model.forecast.ForecastSimGroup;
 
 public abstract class BaseSimulationGroupPanel extends EnabledJPanel
 {
-	private static final String GIT_DASH_D_FLAG = "WTMP.HasGit";
+	public static final String GIT_DASH_D_FLAG = "WTMP.HasGit";
 
 	protected AbstractSimulationPanel _parent;
 	protected RmaJComboBox<ManagerProxy> _simulationGroupCombo;
