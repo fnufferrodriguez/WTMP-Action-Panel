@@ -5,7 +5,7 @@ hec-wat = "1.1.0.0"
 wat-cequalw2 = "v1.1-2.0.0.1149-20210903.004433-1"
 merlin-data-exchange = "2026.03.25"
 
-jasper-version = "6.17.0"
+jasper-version = "6.21.4"
 poi = "3.8"
 jgit = "5.13.0.202109080827-r"
 gitlab4j = "4.19.0"
