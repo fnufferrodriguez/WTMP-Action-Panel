@@ -17,8 +17,11 @@ spring = "5.3.12"
 
 junit-version = "5.14.2"
 
+hec-plots = "1.2-SNAPSHOT"
+
 [libraries]
 hec-wat = { module = "mil.army.usace.hec.wat:hec-wat", version.ref = "hec-wat" }
+hec-plots = { module = "mil.army.usace.hec:hec-plots", version.ref = "hec-plots" }
 wat-cequalw2-plugin = { module = "mil.army.usace.hec.wat:wat-cequalw2-plugin", version.ref = "wat-cequalw2" }
 swingx-core = { module = "mil.army.usace.hec.swingx:swingx-core", version.ref = "swingx" }
 
