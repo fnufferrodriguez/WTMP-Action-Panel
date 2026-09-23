@@ -18,6 +18,7 @@ spring = "5.3.12"
 junit-version = "5.14.2"
 
 hec-plots = "1.2-20241025.181445-15"
+hec-dssvue = "3.0.1-SNAPSHOT"
 
 [libraries]
 hec-wat = { module = "mil.army.usace.hec.wat:hec-wat", version.ref = "hec-wat" }
