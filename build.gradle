@@ -13,6 +13,7 @@ allprojects {
 dependencies {
     // API Dependencies
     api libs.hec.wat
+	implementation libs.hec.plots
     implementation libs.wat.cequalw2.plugin
     implementation(libs.merlin.data.exchange) {
         exclude group: 'mil.army.usace.hec'
