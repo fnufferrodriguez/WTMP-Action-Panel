@@ -13,6 +13,7 @@ allprojects {
 dependencies {
     // API Dependencies
 	implementation libs.hec.plots
+	implementation libs.hec.dssvue
     api libs.hec.wat
     implementation libs.wat.cequalw2.plugin
     implementation(libs.merlin.data.exchange) {
